@@ -1,0 +1,808 @@
+/*Example of Expandable ListView in React Native*/
+import React, { Component } from "react";
+//import react in our project
+import {
+  LayoutAnimation,
+  StyleSheet,
+  View,
+  Text,
+  ScrollView,
+  UIManager,
+  TouchableOpacity,
+  TouchableHighlight,
+  Platform,
+  FlatList,
+  TextInput,
+  Dimensions
+} from "react-native";
+//import basic react native components
+import { MaterialIcons } from "@expo/vector-icons";
+import { AntDesign } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import RadioGroup from "react-native-radio-buttons-group";
+import { SERVER_URL } from "../Constants";
+import Card from "../screens/cards/Card";
+import axios from "axios";
+import { SwipeRow } from "react-native-swipe-list-view";
+
+import Swipeable from "react-native-swipeable-row";
+
+import { CheckBox } from 'react-native-elements'
+
+
+
+class ExpandableItemComponent extends Component {
+  //Custom Component for the Expandable List
+  constructor() {
+    super();
+    this.state = {
+      layoutHeight: 0,
+      liked: false,
+      indexChecked: [],
+      checked: false,
+    };
+  }
+  componentWillReceiveProps(nextProps) {
+    console.log("listDataSource: " + JSON.stringify(this.props.update));
+    if (nextProps.item.isExpanded) {
+      this.setState(() => {
+        return {
+          layoutHeight: null
+        };
+      });
+    } else {
+      this.setState(() => {
+        return {
+          layoutHeight: 0
+        };
+      });
+    }
+  }
+
+  itemSelected = productid => {
+    console.log("itemSelected: " + productid);
+   
+    this.props.item.products.push("1");
+  };
+
+  shouldComponentUpdate(nextProps, nextState) {
+    if (this.state.layoutHeight !== nextState.layoutHeight) {
+      return true;
+    }
+    return false;
+  }
+
+  press = () => {
+    this.setState((state) => ({
+      checked: !state.checked,
+    }));
+  }
+
+  render() {
+    console.log("render: " + this.state.indexChecked);
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={this.props.onClickFunction}
+          style={styles.header}
+        >
+          <View
+            style={{
+              flex: 1,
+              flexDirection: "row",
+              justifyContent: "space-between"
+            }}
+          >
+            <Text style={styles.headerText}>
+              {this.props.item.customername}
+            </Text>
+            <Text style={styles.headerText}>+</Text>
+            <Text style={styles.headerText}>
+              Rs.{this.props.item.totalcost}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <View
+          style={{
+            height: this.state.layoutHeight,
+            overflow: "hidden"
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "rgba(128,128,0, 0.1)",
+              marginTop: 0.5,
+              padding: 10
+            }}
+          >
+            <View style={{ flexDirection: "row" }}>
+              <MaterialIcons
+                style={{ marginRight: 10 }}
+                name="phone"
+                size={20}
+              />
+              <Text style={styles.contentText}>
+                {this.props.item.customermobile}
+              </Text>
+            </View>
+            <View style={{ flexDirection: "row" }}>
+              <AntDesign style={{ marginRight: 10 }} name="home" size={20} />
+              <Text style={styles.contentText}>
+                {this.props.item.deliveryaddress}
+              </Text>
+            </View>
+          </View>
+          {this.props.item.products.map((item, key) => (
+            <Swipeable
+              
+              rightButtons={[
+                <TouchableOpacity
+                  style={[
+                    styles.rightSwipeItem,
+                    { backgroundColor: "#ff1744" }
+                  ]}
+                >
+                  <Text>NA</Text>
+                </TouchableOpacity>,
+                
+              ]}
+              leftButtonWidth='35'
+              rightButtonWidth='35'
+              onRightButtonsOpenRelease={() => {console.log('onRightButtonsOpenRelease')}}
+              onRightButtonsCloseRelease={() => {console.log('onRightButtonsCloseRelease')}}
+              swipeStartMinLeftEdgeClearance={5}
+              swipeStartMinRightEdgeClearance={5}
+            >
+             <View style={{flexDirection:'row', flex: 1, backgroundColor:'#eeeeee', marginBottom:1}}>
+              
+              <Text style={styles.text}>
+                {key+1}. {item.productname}
+              </Text>
+              <Text style={styles.text}>
+                 {item.weight}
+              </Text>
+              <Text style={styles.text}>
+                 Rs.{item.price}
+              </Text>
+             
+              
+          </View>
+            </Swipeable>
+            
+          ))}
+          <CheckBox
+                title="Click Here!"
+                onPress={this.press}
+                checked={this.state.checked}
+              />
+ 
+
+        </View>
+      </View>
+    );
+  }
+}
+
+//ORDER LIST CLASS:
+
+export default class OrderListScreen extends Component {
+  static navigationOptions = {
+    //To set the header image and title for the current Screen
+    title: "Orders",
+    headerBackTitle: null,
+    headerStyle: {
+      //backgroundColor: '#263238',
+      //Background Color of Navigation Bar
+    },
+    headerTitleStyle: {
+      justifyContent: "center",
+      color: "#757575",
+      textAlign: "left",
+      flex: 1
+    },
+    headerTintColor: "#757575"
+  };
+  //Main View defined under this Class
+  constructor() {
+    super();
+    if (Platform.OS === "android") {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+    this.state = {
+      listDataSource: null,
+      showFilter: false,
+      update: [],
+      filterData: [
+        {
+          label: "All",
+          color: "#90caf9"
+        },
+        {
+          label: "New",
+          color: "#90caf9"
+        },
+        {
+          label: "Pending",
+          color: "#90caf9"
+        },
+
+        {
+          label: "Completed",
+          color: "#90caf9"
+        }
+      ]
+    };
+  }
+
+  componentDidMount() {
+    console.log("componentDidMount");
+
+    var shopid = "vichishop";
+    const orderQueryData = {
+      shopid: shopid
+    };
+
+    try {
+      axios({
+        // Of course the url should be where your actual GraphQL server is.
+        url: SERVER_URL + "/ordersByShopId",
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        data: orderQueryData
+      })
+        .then(result => {
+          console.log("Resp Data: " + JSON.stringify(result.data));
+          this.setState({ listDataSource: result.data });
+        })
+        .catch(error => {
+          console.error(error);
+        });
+
+      // fetch(SERVER_URL + "/graphql", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     Accept: "application/json"
+      //   },
+      //   body: JSON.stringify({
+      //     query:
+      //       "{ products{productid  productname brand category description weight  price searchtags  imageurl } }"
+      //   })
+      // })
+      //   .then(res => res.json())
+      //   .then(res => {
+      //     // console.log("data returned:", JSON.stringify(res))
+      //     console.log("data returned:", data.Object);
+
+      //   });
+    } catch (err) {
+      console.log("Error in OrderListScreen: " + err);
+    }
+  }
+
+  ShowHideTextComponentView = () => {
+    if (this.state.showFilter == true) {
+      this.setState({ showFilter: false });
+    } else {
+      this.setState({ showFilter: true });
+    }
+  };
+
+  SearchFilterFunction(text) {
+    //passing the inserted text in textinput
+    const newData = this.arrayholder.filter(function(item) {
+      //applying filter for the inserted text in search bar
+      const itemData = item.title ? item.title.toUpperCase() : "".toUpperCase();
+      const textData = text.toUpperCase();
+      return itemData.indexOf(textData) > -1;
+    });
+    this.setState({
+      //setting the filtered newData on datasource
+      //After setting the data it will automatically re-render the view
+      dataSource: newData,
+      text: text
+    });
+  }
+
+  updateDummyState = () => {
+    // this.state.update.push(10)
+    // this.setState({update: 10})
+    const array = [...this.state.listDataSource];
+    this.setState(() => {
+      return {
+        listDataSource: array
+      };
+    });
+  };
+
+  updateLayout = index => {
+    console.log("updateLayout");
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const array = [...this.state.listDataSource];
+    array[index]["isExpanded"] = !array[index]["isExpanded"];
+    this.setState(() => {
+      return {
+        listDataSource: array
+      };
+    });
+  };
+
+  ListViewItemSeparator = () => {
+    //Item sparator view
+    return (
+      <View
+        style={{
+          height: 0.3,
+          width: "99%",
+          backgroundColor: "#ffff",
+          borderBottomColor: "#fff",
+          borderBottomWidth: 1
+        }}
+      />
+    );
+  };
+
+  
+
+  // update state
+  onPress = filterData => this.setState({ filterData: filterData });
+
+  render() {
+    let selectedButton = this.state.filterData.find(e => e.selected == true);
+    selectedButton = selectedButton
+      ? selectedButton.value
+      : this.state.filterData[0].label;
+    return (
+      <View style={styles.container}>
+        <View
+          style={{
+            backgroundColor: "rgba(0,0,128, 0.4)",
+            alignItems: "center",
+            paddingTop: 10,
+            paddingBottom: 10
+          }}
+        >
+          <Text style={{ alignItems: "center", color: "#fff" }}>
+            New Order: 10 of Rs. 1000
+          </Text>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
+            <Text style={{ color: "#fff" }}>Pending: 10 of Rs. 1500</Text>
+            <Text style={{ marginLeft: 15, marginRight: 15, color: "#fff" }}>
+              |
+            </Text>
+            <Text style={{ color: "#fff" }}>Completed: 10 of Rs. 2500</Text>
+          </View>
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            margin: 7
+          }}
+        >
+          <MaterialIcons
+            style={{ marginLeft: 10, marginTop: 7 }}
+            name="search"
+            size={20}
+          />
+          <TextInput
+            style={{ marginRight: 15, marginLeft: 10 }}
+            onChangeText={text => this.SearchFilterFunction(text)}
+            value={this.state.text}
+            underlineColorAndroid="transparent"
+            placeholder="Search Here"
+          />
+          <TouchableOpacity onPress={() => this.ShowHideTextComponentView()}>
+            <MaterialIcons
+              style={{ marginRight: 10, marginTop: 7 }}
+              name="filter-list"
+              size={20}
+            />
+          </TouchableOpacity>
+        </View>
+        {/* THIS FILTER COMPONANT WILL HIDE ANS SHOW */}
+        {/* <View>
+        {this.state.showFilter ? <Text style= {{ fontSize: 25, color: "#000", textAlign: 'center' }}> Hello Friends </Text> : null}
+        </View> */}
+
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            backgroundColor: "#f5f5f5"
+          }}
+        >
+          {this.state.showFilter ? (
+            <View style={{ flexDirection: "row" }}>
+              <RadioGroup
+                flexDirection="row"
+                radioButtons={this.state.filterData}
+                onPress={this.onPress}
+              />
+            </View>
+          ) : null}
+        </View>
+
+        {/* <ScrollView>
+          {this.state.listDataSource.map((item, key) => (
+            <ExpandableItemComponent
+              key={item.category_name}
+              onClickFunction={this.updateLayout.bind(this, key)}
+              item={item}
+            />
+          ))}
+        </ScrollView> */}
+
+        <FlatList
+          data={this.state.listDataSource}
+          renderItem={({ item, index }) => (
+            // <Text style={styles.textStyle}>{item.category_name}</Text>
+            <ExpandableItemComponent
+              key={item.category_name}
+              onClickFunction={this.updateLayout.bind(this, index)}
+              item={item}
+              updateDummyState={this.updateDummyState}
+            />
+          )}
+          enableEmptySections={true}
+          style={{ marginTop: 1 }}
+          keyExtractor={(item, index) => index}
+          ItemSeparatorComponent={this.ListViewItemSeparator}
+        />
+      </View>
+    );
+  }
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: 1
+    //backgroundColor: "#F5FCFF"
+  },
+  rightSwipeItem: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingLeft: 5,
+  },
+  listItem: {
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom:1
+  },
+
+  topHeading: {
+    paddingLeft: 10,
+    fontSize: 20
+  },
+  header: {
+    backgroundColor: "rgba(142, 213, 87, 0.3)",
+    padding: 16
+  },
+  headerText: {
+    fontSize: 16,
+    fontWeight: "500",
+    fontFamily: "sans-serif"
+  },
+
+  contentText: {
+    fontSize: 14,
+    //fontWeight: '500',
+    fontFamily: "sans-serif"
+  },
+  separator: {
+    height: 0.5,
+    backgroundColor: "#808080",
+    width: "95%",
+    marginLeft: 16,
+    marginRight: 16,
+    borderBottomColor: "#d1d0d4",
+    borderBottomWidth: 1
+  },
+  text: {
+    fontSize: 16,
+    color: "#606070",
+    padding: 10
+  },
+  content: {
+    //paddingBosubcategoryom: 10,
+    paddingLeft: 10,
+    paddingRight: 10,
+    backgroundColor: "#fff"
+  },
+  contentChecked: {
+    justifyContent: "space-between",
+    alignItems: "center",
+    height: "100%",
+    flexDirection: "row"
+  },
+  alignCenter: {
+    lineHeight: 40,
+    color: "black"
+  },
+
+  strikeText: {
+    lineHeight: 40,
+    color: "black",
+    textDecorationLine: "line-through",
+    textDecorationStyle: "solid"
+  },
+  standalone: {
+    // marginTop: 30,
+    // marginBottom: 30
+  },
+  standaloneRowFront: {
+    alignItems: "center",
+    backgroundColor: "#CCC",
+    justifyContent: "center",
+    height: 50
+  },
+  standaloneRowBack: {
+    alignItems: "center",
+    backgroundColor: "#8BC645",
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between"
+    // padding: 15
+  },
+  backTextWhite: {
+    color: "#000000"
+  },
+  rowFront: {
+    alignItems: "center",
+    backgroundColor: "#CCC",
+    borderBottomColor: "black",
+    borderBottomWidth: 1,
+    justifyContent: "center",
+    height: 50
+  },
+  rowBack: {
+    alignItems: "center",
+    backgroundColor: "#DDD",
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingLeft: 15
+  },
+  backRightBtn: {
+    alignItems: "center",
+    bottom: 0,
+    justifyContent: "center",
+    position: "absolute",
+    top: 0,
+    width: 75
+  },
+  backRightBtnLeft: {
+    backgroundColor: "blue",
+    right: 75
+  },
+  backRightBtnRight: {
+    backgroundColor: "red",
+    right: 0
+  },
+  controls: {
+    alignItems: "center",
+    marginBottom: 30
+  },
+  switchContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 5
+  },
+  switch: {
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "black",
+    paddingVertical: 10,
+    width: Dimensions.get("window").width / 4
+  },
+  trash: {
+    height: 25,
+    width: 25
+  }
+});
+
+//Dummy content to show
+//You can also use dynamic data by calling webservice
+const CONTENT = [
+  {
+    isExpanded: false,
+    customerName: "Vichi",
+    customerMObile: "+91 9867614422",
+    totalCost: "500",
+    customerAddress:
+      "B-102 2nd Floor, Kagalwala House Bandra Kurla Complex, Mumbai 400098",
+    products: [
+      {
+        id: 1,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 2,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 3,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 4,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 5,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 6,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      }
+    ]
+  },
+  {
+    isExpanded: false,
+    customerName: "Tuchi",
+    customerMObile: "+91 9867614422",
+    totalCost: "500",
+    customerAddress:
+      "B-102 2nd Floor, Kagalwala House Bandra Kurla Complex, Mumbai 400098",
+    products: [
+      {
+        id: 1,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 2,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 3,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 4,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 5,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 6,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      }
+    ]
+  },
+  {
+    isExpanded: false,
+    customerName: "Suchi",
+    customerMObile: "+91 9867614422",
+    totalCost: "500",
+    customerAddress:
+      "B-102 2nd Floor, Kagalwala House Bandra Kurla Complex, Mumbai 400098",
+    products: [
+      {
+        id: 1,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 2,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 3,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 4,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 5,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      },
+      {
+        id: 6,
+        name: "magggi",
+        brand: "Maggi",
+        description: " 2 minitus noodles",
+        weight: "70g",
+        quantity: "5",
+        price: "21"
+      }
+    ]
+  }
+];

@@ -1,0 +1,96 @@
+aws:
+
+email: vichi100@gmail
+pw: AmazonPassword
+
+########## Instal Mango DB ############
+
+https://www.digitalocean.com/community/tutorials/how-to-install-mongodb-on-centos-7
+
+https://tecadmin.net/install-mongodb-on-centos/
+
+service mongod restart            # For CentOS 6/5 
+
+vi /etc/yum.repos.d/mongodb-org.repo
+
+
+Try to run xcrun simctl delete unavailable in your terminal.
+
+########################################
+
+customers - with their order on click, show total blance
+
+record: display graphs like total sales, 
+
+my shop, display product
+
+me
+
+
+
+// Initialize the Amazon Cognito credentials provider
+CognitoCachingCredentialsProvider credentialsProvider = new CognitoCachingCredentialsProvider(
+    getApplicationContext(),
+    "us-west-2:3f3a46fc-4368-429c-86ba-a263de7649ae", // Identity pool ID
+    Regions.US_WEST_2 // Region
+);
+
+
+
+ 
+
+User:               shopkepperIAM
+Access key ID:      AKIAXHKVEF2D6DFX2YX2
+Secret access key:  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
+
+
+
+################################
+
+
+console.log("Resp Data: "+JSON.stringify(result.data.data.createShop));
+Resp Data: {"data":{"data":{"createShop":{"shopname":"kamal"}}},"status":200,"headers":{"connection":"keep-alive","date":"Tue, 23 Jul 2019 23:37:08 GMT","cache-control":"public, max-age=0","x-powered-by":"Express","content-type":"application/json; charset=utf-8","access-control-allow-headers":"Origin, X-Requested-With, Content-Type, Accept","etag":"W/\"2c-SZlD7vQGF4mcyf4O04Vj2YYvjrY\"","content-length":"44","access-control-allow-origin":"*"},"config":{"url":"http://192.168.43.64:3000/graphql","method":"post","data":"{\"query\":\"\\n            mutation{\\n               createShop(shopInput: {shopid: \\\"10000\\\", shopname:\\\"kamal\\\", shopaddress:\\\"mumbai to\\\", shopmobile:\\\"99999\\\"}){\\n                shopname\\n               }\\n            }\\n            \"}","headers":{"Accept":"application/json, text/plain, */*","Content-Type":"application/json;charset=utf-8"},"transformRequest":[null],"transformResponse":[null],"timeout":0,"xsrfCookieName":"XSRF-TOKEN","xsrfHeaderName":"X-XSRF-TOKEN","maxContentLength":-1},"request":{"UNSENT":0,"OPENED":1,"HEADERS_RECEIVED":2,"LOADING":3,"DONE":4,"readyState":4,"status":200,"timeout":0,"withCredentials":true,"upload":{},"_aborted":false,"_hasError":false,"_method":"POST","_response":"{\"data\":{\"createShop\":{\"shopname\":\"kamal\"}}}","_url":"http://192.168.43.64:3000/graphql","_timedOut":false,"_trackingName":"unknown","_incrementalEvents":false,"responseHeaders":{"Connection":"keep-alive","Date":"Tue, 23 Jul 2019 23:37:08 GMT","Cache-Control":"public, max-age=0","X-Powered-By":"Express","Content-Type":"application/json; charset=utf-8","Access-Control-Allow-Headers":"Origin, X-Requested-With, Content-Type, Accept","ETag":"W/\"2c-SZlD7vQGF4mcyf4O04Vj2YYvjrY\"","Content-Length":"44","Access-Control-Allow-Origin":"*"},"_requestId":null,"_headers":{"accept":"application/json, text/plain, */*","content-type":"application/json;charset=utf-8"},"_responseType":"","_sent":true,"_lowerCaseResponseHeaders":{"connection":"keep-alive","date":"Tue, 23 Jul 2019 23:37:08 GMT","cache-control":"public, max-age=0","x-powered-by":"Express","content-type":"application/json; charset=utf-8","access-control-allow-headers":"Origin, X-Requested-With, Content-Type, Accept","etag":"W/\"2c-SZlD7vQGF4mcyf4O04Vj2YYvjrY\"","content-length":"44","access-control-allow-origin":"*"},"_subscriptions":[],"responseURL":"http://192.168.43.64:3000/graphql"}}
+
+console.log("Resp Data: "+JSON.stringify(result.data.));
+Resp Data: {"data":{"createShop":{"shopname":"kamal"}}}
+
+console.log("Resp Data: "+JSON.stringify(result.data.data.createShop));
+Resp Data: {"createShop":{"shopname":"kamal"}}
+
+##############  CHART N BAR ###############
+
+https://github.com/indiespirit/react-native-chart-kit
+
+RADIO BUTTON
+
+DAILY N MONTHLY
+
+SALES CHART BAR
+
+PRODUCT CATEGORY PAI CHART
+
+CUSTOMER SALES CHART
+
+
+
+Finished building JavaScript bundle in 501ms.
+Running application on ONEPLUS A6000.
+this.state.listViewData: [{"key":"0","text":"item #0"},{"key":"1","text":"item #1"},{"key":"2","text":"item #2"},{"key":"3","text":"item #3"},{"key":"4","text":"item #4"},{"key":"5","text":"item #5"},{"key":"6","text":"item #6"},{"key":"7","text":"item #7"},{"key":"8","text":"item #8"},{"key":"9","text":"item #9"},{"key":"10","text":"item #10"},{"key":"11","text":"item #11"},{"key":"12","text":"item #12"},{"key":"13","text":"item #13"},{"key":"14","text":"item #14"},{"key":"15","text":"item #15"},{"key":"16","text":"item #16"},{"key":"17","text":"item #17"},{"key":"18","text":"item #18"},{"key":"19","text":"item #19"}]
+
+
+
+render: [{"productid":"9c821431-4d76-489e-9c24-e12f5506b230","productname":"Rustic Wooden Car","brand":"Tasty","category":"Electronics","description":"Soap","weight":"62011","price":"407.00","searchtags":"Home Loan Account","imageurl":"http://lorempixel.com/640/480","qty":1},{"productid":"2f0e9031-a1a5-4bdb-90d3-f9c68bca00ba","productname":"Gorgeous Fresh Soap","brand":"Incredible","category":"Games","description":"Car","weight":"56348","price":"153.00","searchtags":"Table","imageurl":"http://lorempixel.com/640/480","qty":1}]
+
+
+
+OrderListScreen
+
+
+[{"productid":"9c821431-4d76-489e-9c24-e12f5506b230","productname":"Rustic Wooden Car","brand":"Tasty","category":"Electronics",
+"description":"Soap","weight":"62011","price":"407.00","searchtags":"Home Loan Account",
+"imageurl":"http://lorempixel.com/640/480","qty":1},{"productid":"2f0e9031-a1a5-4bdb-90d3-f9c68bca00ba",
+"productname":"Gorgeous Fresh Soap","brand":"Incredible","category":"Games","description":"Car","weight":"56348",
+"price":"153.00","searchtags":"Table","imageurl":"http://lorempixel.com/640/480","qty":1}],
+"_id":"5d4aa7d41b39006e776d6948","orderid":"69c0e603-9de8-4d86-b71b-904edfc5bd92","shopid":"vichishop",
+"shopname":"Go see","customerid":"0001","customername":"Aaron Alphonso","customermobile":"+91 7030 625 988",
+"deliveryaddress":null,"totalcost":"560","deliverystatus":"packed","paymentstatus":"pending","paymentmode":"NA"}
