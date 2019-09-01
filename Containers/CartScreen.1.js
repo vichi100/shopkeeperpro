@@ -14,7 +14,9 @@ import { AsyncStorage } from "react-native";
 import axios from "axios";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import Dialog from "react-native-dialog";
+//https://www.npmjs.com/package/react-native-dropdownalert/v/1.6.0
+import FlashMessage from "react-native-flash-message";
+import { showMessage, hideMessage } from "react-native-flash-message";
 
 
 
@@ -47,8 +49,7 @@ class CartScreen extends Component {
     this.state = {
       cartData: null,
       totalCost: 0,
-      totalItems: 0,
-      dialogVisible : false,
+      totalItems: 0
     };
   }
 
@@ -108,29 +109,19 @@ class CartScreen extends Component {
       data: requestBody
     }).then(result => {
       console.log("Resp Data: " + JSON.stringify(result.data));
-
-      this.setState({ dialogVisible: true });
       
 
-      // showMessage({
-      //   message: "My message title",
-      //   description: "My message description",
-      //   type: "success",
-      //   hideOnPress:true,
-      //   position: "center",
-      //   duration: 30000,
-      //   onPress: () => {
-      //     /* THIS FUNC/CB WILL BE CALLED AFTER MESSAGE PRESS */
-      //     this.props.navigation.navigate("MainTabNavigator", {
-      //       shopmobile: "shopmobile"
-      //     });
-      //   },
+      showMessage({
+        message: "My message title",
+        description: "My message description",
+        type: "success",
+        hideOnPress:true,
+        position: "center",
+        onPress: () => {
+          /* THIS FUNC/CB WILL BE CALLED AFTER MESSAGE PRESS */
+        },
         
-      // });
-
-      // this.props.navigation.navigate("MainTabNavigator", {
-      //   shopmobile: "shopmobile"
-      // });
+      });
       
       
     }).catch(function (error) {
@@ -138,29 +129,6 @@ class CartScreen extends Component {
       
   })
   };
-
-  handleOk = () => {
-    // The user has pressed the "Delete" button, so here you can do your own logic.
-    // ...Your logic
-    this.setState({ dialogVisible: false });
-    this.props.navigation.navigate("MainTabNavigator", {
-        shopmobile: "shopmobile"
-    });
-    this.props.dispatch(this._dataFetched()) 
-  };
-
-  _dataFetched = () => ({
-    type: "CLEAR_COMPLETED",
-      payload:[]
-  })
-
-  // clearCompleted = () => {
-  //   return{
-  //     type: CLEAR_COMPLETED
-  //   }
-  // }
-  
-  
 
   calculateTotalCost = () => {
     console.log("bar");
@@ -200,9 +168,7 @@ class CartScreen extends Component {
   };
 
   render() {
-    console.log("CartScreen: "+ JSON.stringify(this.props.cartItems));
-    this.props.cartItems=[];
-    console.log("CartScreen empty: "+ JSON.stringify(this.props.cartItems)); 
+    // console.log("CartScreen: "+ JSON.stringify(this.props.cartItems));
     cartData = this.props.cartItems;
     const { navigation } = this.props;
     var customerMobile = navigation.getParam("customerMobile");
@@ -295,41 +261,8 @@ class CartScreen extends Component {
             <Text style={{ color: "#ffffff" , fontSize:14}}>SHARE ORDER WITH CUSTOMER</Text>
           </View>
         </TouchableOpacity>
-
-        <Dialog.Container
-                  visible={this.state.dialogVisible}
-                  buttonSeparatorStyle={{ justifyContent: "space-between" }}
-                >
-                  <Dialog.Title
-                    style={{
-                      color: "#4caf50",
-                      justifyContent: "center",
-                      textAlign: "center"
-                    }}
-                  >
-                    SUCCESS
-                  </Dialog.Title>
-                  <Dialog.Description>
-                    
-                    <Text
-                      style={{
-                        paddingLeft: 50,
-                        justifyContent: "center",
-                        textAlign: "center",
-                        alignItems: "center"
-                      }}
-                    >
-                      Your order has been booked successfully
-                    </Text>
-                    
-                  </Dialog.Description>
-                  <Dialog.Button
-                    label="OK"
-                    style={{ fontFamily: "sans-serif", marginLeft: 50 }}
-                    onPress={() => this.handleOk()}
-                  />
-                  
-                </Dialog.Container>
+      
+        <FlashMessage ref="myLocalFlashMessage" />   
 
 
       </View>
@@ -375,11 +308,7 @@ const mapDispatchToProps = dispatch => {
       dispatch({
         type: "REMOVE_FROM_CART",
         payload: product
-      }),
-      clearCompleted: () => dispatch({
-      type: "CLEAR_COMPLETED",
-      payload:[]
-    })
+      })
   };
 };
 //make this component available to the app

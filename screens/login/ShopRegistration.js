@@ -77,11 +77,13 @@ export default class ShopRegistration extends Component {
       method: "POST",
       data: requestBody
     }).then(result => {
-      console.log("Resp Data: "+JSON.stringify(result.data));
+      console.log("Resp Data: "+JSON.stringify(result.data.data.createShop.shopid));
       // store shop details in local
-      this._storeShopDetails(shopname, shopaddress, shopmobile, alternatemobile, city)
+      var shopid = result.data.data.createShop.shopid
+      this._storeShopDetails(shopname, shopaddress, shopmobile, alternatemobile, city, shopid)
       this.props.navigation.navigate("MainTabNavigator", {
-        shopmobile: "shopmobile"
+        shopmobile: "shopmobile",
+        shopid: shopid,
       });
     }); 
 
@@ -99,12 +101,14 @@ export default class ShopRegistration extends Component {
     // })
   };
 
-  _storeShopDetails = async (shopname, shopaddress, shopmobile, alternatemobile, city) =>{
+  _storeShopDetails = async (shopname, shopaddress, shopmobile, alternatemobile, city, shopid) =>{
+    console.log('_storeShopDetails shopid: '+shopid)
     await AsyncStorage.setItem("shopname", shopname);
     await AsyncStorage.setItem("shopaddress", shopaddress);
     await AsyncStorage.setItem("shopmobile", shopmobile);
     await AsyncStorage.setItem("alternatemobile", alternatemobile);
     await AsyncStorage.setItem("shopcity", city);
+    await AsyncStorage.setItem("shopid", shopid);
   }
 
 

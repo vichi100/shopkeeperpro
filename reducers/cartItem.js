@@ -42,6 +42,12 @@ const cartItems = (state = [], action) => {
       var data = [...state, {'productid': '1'}];
       console.log('CHANGE_QTY: '+JSON.stringify(data))
       return data.filter(cartItem => cartItem.productid !== '1');
+    
+    case "CLEAR_COMPLETED":
+      console.log('CLEAR_COMPLETED')
+      state = []
+      return state
+ 
   }
   return state;
 };

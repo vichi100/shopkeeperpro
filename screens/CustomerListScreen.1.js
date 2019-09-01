@@ -19,7 +19,7 @@ import RadioGroup from 'react-native-radio-buttons-group';
 import Card from "./cards/Card";
 import { MaterialIcons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Feather } from "@expo/vector-icons";
+import {AsyncStorage} from 'react-native';
 
 
 import { FontAwesome } from "@expo/vector-icons";
@@ -50,7 +50,9 @@ export default class CustomerListScreen extends Component {
       text: "",
       contacts: [],
       arrayholder: [],
-      dataSource: [],
+      dataSource: [], /// this value we will get from server fetching from mongodb
+      customerContatDataToInsert:[],
+      customerContatDataToUpdate:[],
       showFilter: false,
       checked: 'first',
       data: [
@@ -74,7 +76,7 @@ export default class CustomerListScreen extends Component {
   async componentDidMount() {
     // Ask for permission to query contacts.
     const permission = await Permissions.askAsync(Permissions.CONTACTS);
-    var contactDataArray = []
+    var contactMap = new Map(); 
 
     if (permission.status !== "granted") {
       // Permission was denied...
@@ -89,9 +91,10 @@ export default class CustomerListScreen extends Component {
       pageOffset: 0
     });
     if (contacts.total > 0) {
-      console.log('contacts size '+ contacts.total )
+      // console.log('contacts size '+ contacts.data )
+      var CustomerDetailsMap = await AsyncStorage.getItem('CustomerDetailsMap');
 
-      for (let i = 0; i < contacts.total; i++) { 
+      for (let i = 0; i < 10; i++) { 
         if (contacts.data[i] !== undefined && contacts.data[i].firstName) { 
           try {
             var name = contacts.data[i].firstName;
@@ -99,33 +102,58 @@ export default class CustomerListScreen extends Component {
             var mobile = contacts.data[i].phoneNumbers[0].number;
             // console.log(contacts.data[i].firstName +' '+ lastName)
             // console.log(contacts.data[i].phoneNumbers[0].number);
+            console.log('contacts data: '+JSON.stringify(contacts.data[i]))    
             var fullName = name;
             if (lastName !== undefined) { 
               fullName = name + " " + lastName;
             }
 
-            const obj = { name: fullName, mobile: mobile, address: null };
-            // this.state.dataSource.push(obj); // Push the object
-            contactDataArray.push(obj)
+            if(CustomerDetailsMap === null){
+              contactMap.set(mobile, name)
+              const obj = {  name: fullName, mobile: mobile,  };
+              this.state.customerContatDataToInsert.push(obj); // Push the object
+              console.log('name: '+JSON.stringify(this.state.dataSource))
+            }else{
+              // one cud be for update name while other cud be for new insert.
+              if(CustomerDetailsMap.has(mobile) && CustomerDetailsMap[mobile] !== fullName){
+                const obj = {  name: fullName, mobile: mobile,  };
+                this.state.customerContatDataToUpdate.push(obj); // Push the object
+              }else if(!CustomerDetailsMap.has(mobile)){
+                const obj = {  name: fullName, mobile: mobile};
+                this.state.customerContatDataToInsert.push(obj); // Push the object
+              }
+            }
           } catch (e) {
             console.log("Error");
           }
         }
       }
-      //console.log(this.state.arrayholder)
-      // write customer contacts to server 
+      
+      for(const item of contactMap){
+        console.log('map item: '+item); 
+      }
 
-      // this.setState({ arrayholder: this.state.dataSource, isLoading: false });
-      this._sendCustomerDetailsToserver(contactDataArray)
+
+      this.setState({ arrayholder: this.state.dataSource, isLoading: false });
+      await AsyncStorage.setItem('CustomerDetailsMap', contactMap);
+      this._sendCustomerDetailsToserver()
     }
   }
 
-  _sendCustomerDetailsToserver = (contactsData) =>{ 
-    //console.log('contactsData: '+ JSON.stringify(contactsData))
-    console.log('contactsData size: '+ contactsData.length)
-    const requestBody = JSON.stringify(contactsData) 
-    console.log('contactsData size: '+ requestBody.length)
+  _sendCustomerDetailsToserver = () =>{ 
     
+    const requestBody = JSON.stringify({
+      customerContactDataToUpdate: this.state.customerContactDataToUpdate,
+      customerContactDataToInsert: this.state.customerContactDataToInsert
+    }) 
+    console.log('contactsData size: '+ requestBody.length)
+    // const requestBody = { 
+    //   query: `
+    //         mutation{  
+    //           createManyCustomers(customerInput: {customerData: "${name}"})
+    //         }
+    //         `
+    // };
     console.log('registerShop')  
     axios({ 
       // Of course the url should be where your actual GraphQL server is.
@@ -138,13 +166,9 @@ export default class CustomerListScreen extends Component {
       data: requestBody        
     }).then(result => { 
       console.log("Resp Data: "+JSON.stringify(result.data));
-
-      const customerContactDetailsData = result.data
-
-      this.setState({ dataSource: customerContactDetailsData, arrayholder: customerContactDetailsData, isLoading: false });
-      // this.props.navigation.navigate("MainTabNavigator", {
-      //   shopmobile: "shopmobile"   
-      // });               
+      this.props.navigation.navigate("MainTabNavigator", {
+        shopmobile: "shopmobile"   
+      });               
     });              
   }                 
  
@@ -203,8 +227,8 @@ export default class CustomerListScreen extends Component {
     const newData = this.state.arrayholder.filter(function(item) {
       const query = text.toLowerCase();
       return (
-        item.customernamebyshop.toLowerCase().indexOf(query) >= 0 ||
-        item.customermobile.toLowerCase().indexOf(query) >= 0
+        item.name.toLowerCase().indexOf(query) >= 0 ||
+        item.mobile.toLowerCase().indexOf(query) >= 0
       );
     });
     this.setState({
@@ -236,19 +260,13 @@ export default class CustomerListScreen extends Component {
         <TouchableOpacity onPress={() => this._getCustomerOrdersDetails(item)}>
           <Card containerStyle={{ padding: 10 }}>
             <View
-              style={{ flexDirection: "row", marginLeft: 5, marginRight: 10, marginTop:5 }}
+              style={{ flexDirection: "row", marginLeft: 10, marginRight: 10, marginTop:5 }}
             >
-              { item.isRegisteredByCustomer === 'no' ? 
               <MaterialCommunityIcons
-                style={styles.iconPersone} 
+                style={styles.iconPersone}
                 name="account-box-outline"
                 size={20}
-              />: 
-              <MaterialCommunityIcons
-              style={styles.iconPersone}
-              name="account-check-outline"
-              size={20}
-            />}
+              />
               <Text
                 style={{
                   fontSize: 14,
@@ -257,7 +275,7 @@ export default class CustomerListScreen extends Component {
                   fontFamily: "sans-serif"
                 }}
               >
-                {item.customernamebyshop}
+                {item.name}
               </Text>
             </View>
             {/* <Text>{item.name}</Text> */}
@@ -266,7 +284,7 @@ export default class CustomerListScreen extends Component {
               style={{ flexDirection: "row", marginLeft: 40, marginRight: 10 }}
             >
               <MaterialIcons style={styles.iconMobile} name="phone" size={20} />
-              <Text style={{ fontSize: 14, color: "#000" }}>{item.customermobile}</Text>
+              <Text style={{ fontSize: 14, color: "#000" }}>{item.mobile}</Text>
             </View>
 
             {/* <Text>{item.mobile}</Text> */}
@@ -278,12 +296,12 @@ export default class CustomerListScreen extends Component {
 
   _getCustomerOrdersDetails = item => {
     console.log("customer name: " + JSON.stringify(item));
-    var customerMobile = item.customermobile;
+    var customerMobile = item.mobile;
     if(customerMobile !== null || customerMobile !== undefined){
       customerMobile = customerMobile.replace(/\s/g, "");
     }
 
-    fetch(SERVER_URL + "/customerDetails", { 
+    fetch(SERVER_URL + "/customerDetails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -301,8 +319,8 @@ export default class CustomerListScreen extends Component {
 
         console.log("deliveryaddress: ", deliveryaddress);
         this.props.navigation.navigate("CustomerOrdersDetails", {
-          customerMobile: item.customermobile,  
-          customerName: item.customernamebyshop, 
+          customerMobile: item.mobile,  
+          customerName: item.name, 
           customerDetails: item,
           deliveryaddress: deliveryaddress
         });
@@ -417,8 +435,7 @@ const styles = StyleSheet.create({
   iconPersone: {
     width: 30,
     height: 30,
-    color: "#0091ea",
-    marginRight:10,
+    color: "#0091ea"
     //borderRadius: 30,
     //borderWidth: 2,
     //borderColor: 'rgb(170, 207, 202)'

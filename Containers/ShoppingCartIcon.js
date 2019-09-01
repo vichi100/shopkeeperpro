@@ -14,7 +14,7 @@ import Icon from 'react-native-vector-icons/Ionicons'
 
 _goTOBasket = (props) =>{
 
-    //console.log('_goTOBasket in ShoppingCartIcon props: '+JSON.stringify(props))
+    console.log('_goTOBasket in ShoppingCartIcon props: '+JSON.stringify(props))
     const { navigation } = props;
 
     var customerMobile = navigation.getParam("customerMobile");
@@ -22,12 +22,14 @@ _goTOBasket = (props) =>{
     var customerName = navigation.getParam("customerName");
     //console.log('_goTOBasket in ShoppingCartIcon customerName: '+customerName)
     var deliveryaddress = navigation.getParam("deliveryaddress"); 
+    var customerid = navigation.getParam("customerid"); 
     // props.navigation.navigate('Cart')
     props.navigation.navigate('Cart',
     {
       customerMobile: customerMobile,
       customerName: customerName,
-      deliveryaddress: deliveryaddress
+      deliveryaddress: deliveryaddress,
+      customerid: customerid,
     });
 }
 

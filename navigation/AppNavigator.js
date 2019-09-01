@@ -24,7 +24,9 @@ import LoginScreen from '../screens/login/login';
 import ShopRegistration from '../screens/login/ShopRegistration';
 import OTPScreen from '../screens/login/OTPScreen';
 import AddCustomerAddress  from '../screens/AddCustomerAddress';
-import Profile from '../screens/profile'
+import Profile from '../screens/profile';
+import SalesChart from '../purechart/SalesChart';
+import HelpScreen from '../screens/HelpScreen';
 
 // export default createAppContainer(
 //   createSwitchNavigator({
@@ -43,7 +45,7 @@ const config = Platform.select({
 
 const HomeStack = createStackNavigator(
   {
-    Home: OrderListScreen,
+    Home: OrderListScreen, //HelpScreen,//
   },
   config
 );
@@ -84,7 +86,7 @@ LinksStack.path = '';
 
 const chartStack = createStackNavigator(
   {
-    Links: CustomerListScreen,
+    Links: SalesChart,
   },
   config
 );
@@ -148,14 +150,17 @@ const AppStack = createStackNavigator({
   Profile:Profile,
   
   
-},{
+},
+{
   defaultNavigationOptions:{
       // headerTitle:"Shopping App",
       headerRight:(
           <ShoppingCartIcon/>
       )
   }
-});
+}
+
+);
 
 export default createAppContainer( 
   createSwitchNavigator(

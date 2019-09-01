@@ -13,22 +13,22 @@ import {
   Platform,
   FlatList,
   TextInput,
-  Dimensions
+  Dimensions,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 //import basic react native components
 import { MaterialIcons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import {Feather} from "@expo/vector-icons";
-import RadioGroup from "react-native-radio-buttons-group";
-import { SERVER_URL } from "../Constants";
-// import Card from "../screens/cards/Card";
-import axios from "axios";
-// import { SwipeRow } from "react-native-swipe-list-view";
+import { FontAwesome } from "@expo/vector-icons";
 
-// import Swipeable from "react-native-swipeable-row";
-// import Swipeable from "../swipeable/Swipeable";
+import { Feather } from "@expo/vector-icons";
+import RadioGroup from "../radiobutton/RadioGroup";
+import { AsyncStorage } from "react-native";
+import { SERVER_URL } from "../Constants";
+import axios from "axios";
 
 import { CheckBox } from "react-native-elements";
 
@@ -36,12 +36,16 @@ import { CheckBox } from "react-native-elements";
 //import for the animation of Collapse and Expand
 import Collapsible from "react-native-collapsible";
 import Dialog from "react-native-dialog";
-// import { Dialog, ConfirmDialog } from 'react-native-simple-dialogs';
-
-//ORDER LIST CLASS:
 
 import SwipeItem from "../swipeable/SwipeItem";
 import SwipeButtonsContainer from "../swipeable/SwipeButtonsContainer";
+
+var radiogroup_options = [
+  { id: 0, label: "All" },
+  { id: 1, label: "New" },
+  { id: 2, label: "Packed" },
+  { id: 3, label: "Completed" }
+];
 
 const leftButton = (
   <SwipeButtonsContainer
@@ -91,16 +95,18 @@ export default class OrderListScreen extends Component {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
     this.state = {
+      isRefreshing: false,
+      isLoading: true,
       activeSections: [],
       checkboxes: [],
       payments: [],
       ordercancel: [],
-      arrayholder : [],
+      arrayholder: [],
       multipleSelect: true,
       listDataSource: null,
       orderSummaryData: null,
-      totalCostOfNewOrder:  0,
-      totalNumberOfNewOrder:0,
+      totalCostOfNewOrder: 0,
+      totalNumberOfNewOrder: 0,
       totalCostOfPendingOrder: 0,
       totalNumberOfPendingOrder: 0,
       totalCostOfCompletedOrder: 0,
@@ -112,34 +118,47 @@ export default class OrderListScreen extends Component {
       filterData: [
         {
           label: "All",
-          color: "#90caf9"
+          color: "#90caf9",
+          size: 14,
+          flexDirection: "row"
         },
         {
           label: "New",
-          color: "#90caf9"
+          color: "#90caf9",
+          size: 14,
+          flexDirection: "row"
         },
         {
-          label: "Pending",
-          color: "#90caf9"
+          label: "Packed",
+          color: "#90caf9",
+          size: 14,
+          flexDirection: "row"
+        },
+        {
+          label: "Delivery",
+          color: "#90caf9",
+          size: 14,
+          flexDirection: "row"
         },
 
         {
           label: "Completed",
-          color: "#90caf9"
+          color: "#90caf9",
+          size: 16,
+          flexDirection: "row"
         }
       ]
     };
     
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     console.log("componentDidMount");
-
-    var shopid = "vichishop";
+    var shopid = await AsyncStorage.getItem("shopid");
     const orderQueryData = {
       shopid: shopid
     };
-    
+
     try {
       axios({
         // Of course the url should be where your actual GraphQL server is.
@@ -149,25 +168,42 @@ export default class OrderListScreen extends Component {
           Accept: "application/json",
           "Content-Type": "application/json"
         },
-        data: orderQueryData     
+        data: orderQueryData
       })
         .then(result => {
           console.log("Resp Data: " + JSON.stringify(result.data));
+          console.log('result.data.length: '+result.data.length);
           // console.log('result.data.ordersummary: '+ result.data.ordersummary.totalcostofneworder)
-          this.setState({ listDataSource: result.data.orderdata , orderSummaryData: result.data.ordersummary,
-            totalCostOfNewOrder:  result.data.ordersummary.totalcostofneworder,
-            totalNumberOfNewOrder: result.data.ordersummary.totalnumberofneworder,
-            totalCostOfPendingOrder: result.data.ordersummary.totalcostofpendingorder,
-            totalNumberOfPendingOrder: result.data.ordersummary.totalnumberofpendingorder,
-            totalCostOfCompletedOrder: result.data.ordersummary.totalcostofcompletedorder,
-            totalNumberOfCompletedOrder: result.data.ordersummary.totalnumberofcompletedorder,
-            arrayholder : result.data.orderdata,
-            
-          }); 
+          var count = Object.keys(result).length; 
+
+          if(count > 0){
+            this.setState({
+              listDataSource: result.data.orderdata,
+              orderSummaryData: result.data.ordersummary,
+              totalCostOfNewOrder: result.data.ordersummary.totalcostofneworder,
+              totalNumberOfNewOrder:
+                result.data.ordersummary.totalnumberofneworder,
+              totalCostOfPendingOrder:
+                result.data.ordersummary.totalcostofpendingorder,
+              totalNumberOfPendingOrder:
+                result.data.ordersummary.totalnumberofpendingorder,
+              totalCostOfCompletedOrder:
+                result.data.ordersummary.totalcostofcompletedorder,
+              totalNumberOfCompletedOrder:
+                result.data.ordersummary.totalnumberofcompletedorder,
+              arrayholder: result.data.orderdata,
+              isLoading:false,
+            });
+          }else{
+            console.log('I am in else')
+            this.setState({isLoading:false,}) 
+          }
           
+
         })
-        .catch(error => {  
+        .catch(error => {
           console.error(error);
+          this.setState({isLoading:false,}) 
         });
 
       // fetch(SERVER_URL + "/graphql", {
@@ -189,7 +225,80 @@ export default class OrderListScreen extends Component {
       //   });
     } catch (err) {
       console.log("Error in OrderListScreen: " + err);
+      this.setState({isLoading:false,}) 
     }
+    
+  }
+
+  
+  onRefresh = async () => {
+    this.setState({ isRefreshing: true }); // true isRefreshing flag for enable pull to refresh indicator
+    var shopid = await AsyncStorage.getItem("shopid");
+    const orderQueryData = {
+      shopid: shopid
+    }; 
+
+    axios({
+      // Of course the url should be where your actual GraphQL server is.
+      url: SERVER_URL + "/ordersByShopId",
+      method: "POST", 
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      data: orderQueryData
+    })
+      .then(result => {
+        console.log("Resp Data: " + JSON.stringify(result.data));
+        console.log('result.data.length: '+result.data.length);
+        // console.log('result.data.ordersummary: '+ result.data.ordersummary.totalcostofneworder)
+        var count = Object.keys(result).length; 
+
+        if(count > 0){
+          this.setState({
+            listDataSource: result.data.orderdata,
+            orderSummaryData: result.data.ordersummary,
+            totalCostOfNewOrder: result.data.ordersummary.totalcostofneworder,
+            totalNumberOfNewOrder:
+              result.data.ordersummary.totalnumberofneworder,
+            totalCostOfPendingOrder:
+              result.data.ordersummary.totalcostofpendingorder,
+            totalNumberOfPendingOrder:
+              result.data.ordersummary.totalnumberofpendingorder,
+            totalCostOfCompletedOrder:
+              result.data.ordersummary.totalcostofcompletedorder,
+            totalNumberOfCompletedOrder:
+              result.data.ordersummary.totalnumberofcompletedorder,
+            arrayholder: result.data.orderdata,
+            isLoading:false,
+            isRefreshing: false,
+          });
+        }else{
+          console.log('I am in else')
+          this.setState({isLoading:false,}) 
+        }
+        
+
+      })
+      .catch(error => {
+        console.error(error);
+        this.setState({isLoading:false, isRefreshing: false,}) 
+      });
+
+
+
+
+
+    // const url = `https://api.stackexchange.com/2.2/users?page=1&order=desc&sort=reputation&site=stackoverflow`;
+    // axios.get(url)
+    //   .then(res => {
+    //     let data = res.data.items
+    //     this.setState({ isRefreshing: false, data: data }) // false isRefreshing flag for disable pull to refresh indicator, and clear all data and store only first page data
+    //   })
+    //   .catch(error => {
+    //     this.setState({ isRefreshing: false, error: 'Something just went wrong' }) // false isRefreshing flag for disable pull to refresh
+    //   });
+    
   }
 
   updateOrderDetails = (orderItem, status) => {
@@ -288,7 +397,7 @@ if any of above exits for an order then it will be delivery status for that orde
       this.updateOrderDetails(item, "completed");
     }
 
-    this.setState({ checkboxes }); 
+    this.setState({ checkboxes });
     // console.log("MS check a4: " + checkboxes && checkboxes.includes(id));
   };
 
@@ -484,14 +593,39 @@ if any of above exits for an order then it will be delivery status for that orde
     }
   };
 
-  SearchFilterFunction = (text) =>{
-    console.log(text)
-    console.log('SearchFilterFunction item: '+this.state.arrayholder)
+  onPressMe = option => {
+    console.log("onPressMe: " + JSON.stringify(option));
+
+    let selectedButton = option.label;
+    if (selectedButton === "All") {
+      this.setState({
+        listDataSource: this.state.arrayholder
+      });
+      return;
+    }
+    const newData = this.state.arrayholder.filter(function(item) {
+      //applying filter for the inserted text in search bar
+      console.log(item.deliverystatus);
+      var serchTerm = item.deliverystatus;
+      const itemData = serchTerm ? serchTerm.toUpperCase() : "".toUpperCase();
+      const textData = selectedButton.toUpperCase();
+      return itemData.indexOf(textData) > -1;
+    });
+    this.setState({
+      //setting the filtered newData on datasource
+      //After setting the data it will automatically re-render the view
+      listDataSource: newData
+    });
+  };
+
+  SearchFilterFunction = text => {
+    console.log(text);
+    console.log("SearchFilterFunction item: " + this.state.arrayholder);
     //passing the inserted text in textinput
     const newData = this.state.arrayholder.filter(function(item) {
       //applying filter for the inserted text in search bar
-      console.log(item.customername)
-      var serchTerm = item.customername+ item.customermobile;
+      console.log(item.customername);
+      var serchTerm = item.customername + item.customermobile;
       const itemData = serchTerm ? serchTerm.toUpperCase() : "".toUpperCase();
       const textData = text.toUpperCase();
       return itemData.indexOf(textData) > -1;
@@ -502,7 +636,7 @@ if any of above exits for an order then it will be delivery status for that orde
       listDataSource: newData,
       text: text
     });
-  }
+  };
 
   ListViewItemSeparator = () => {
     //Item sparator view
@@ -519,9 +653,6 @@ if any of above exits for an order then it will be delivery status for that orde
     );
   };
 
-  // update state
-  onPress = filterData => this.setState({ filterData: filterData });
-
   render() {
     // const { multipleSelect, activeSections } = this.state;
     const activeSections = this.state.activeSections;
@@ -529,10 +660,45 @@ if any of above exits for an order then it will be delivery status for that orde
     const payments = this.state.payments;
     const ordercancel = this.state.ordercancel;
 
-    let selectedButton = this.state.filterData.find(e => e.selected == true);
-    selectedButton = selectedButton
-      ? selectedButton.value
-      : this.state.filterData[0].label;
+    console.log('this.state.listDataSource: '+ this.state.listDataSource);
+    
+    if (this.state.isLoading) {
+      console.log('isLoading: '+this.state.isLoading) 
+      //Loading View while data is loading
+      return (
+        <View style={{ flex: 1, paddingTop: 20 }}>
+          <ActivityIndicator />
+        </View>
+      );
+    }
+
+    if(this.state.listDataSource === null || this.state.listDataSource.length === 0){
+      return (
+      <View style={{flex:1, justifyContent:'center', alignItems: 'center'}}>
+        <Text>No Order For Today</Text>
+        <View style={{flexDirection:'column', justifyContent:'center', alignItems: 'center'}}>
+          <Text>To Create New Order And Share Go To Customers</Text> 
+          <FontAwesome
+                          style={{
+                            color: "#2979ff" ,
+                            marginTop:10,
+                            marginLeft: 5,
+                            marginRight: 5
+                          }}
+                          name="hand-o-down"
+                          size={30}
+                        />
+
+        </View>
+        
+      </View>
+      )
+    } 
+
+    // let selectedButton = this.state.filterData.find(e => e.selected == true);
+    // selectedButton = selectedButton
+    //   ? selectedButton.value
+    //   : this.state.filterData[0].label;
     return (
       <View style={styles.container}>
         <View
@@ -544,22 +710,29 @@ if any of above exits for an order then it will be delivery status for that orde
           }}
         >
           <Text style={{ alignItems: "center", color: "#fff" }}>
-            New Orders: {this.state.totalNumberOfNewOrder} of {this.state.totalCostOfNewOrder} Rs.
+            New Orders: {this.state.totalNumberOfNewOrder} of{" "}
+            {this.state.totalCostOfNewOrder} Rs.
           </Text>
           <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}    
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <Text style={{ color: "#fff" }}>Pending: {this.state.totalNumberOfPendingOrder} of {this.state.totalCostOfPendingOrder} Rs.</Text>
+            <Text style={{ color: "#fff" }}>
+              Pending: {this.state.totalNumberOfPendingOrder} of{" "}
+              {this.state.totalCostOfPendingOrder} Rs.
+            </Text>
             <Text style={{ marginLeft: 15, marginRight: 15, color: "#fff" }}>
               |
             </Text>
-            <Text style={{ color: "#fff" }}>Completed: {this.state.totalNumberOfCompletedOrder} of {this.state.totalCostOfCompletedOrder} Rs.</Text>
+            <Text style={{ color: "#fff" }}>
+              Completed: {this.state.totalNumberOfCompletedOrder} of{" "}
+              {this.state.totalCostOfCompletedOrder} Rs.
+            </Text>
           </View>
         </View>
         <View
           style={{
             flexDirection: "row",
-            justifyContent: "space-between", 
+            justifyContent: "space-between",
             margin: 7
           }}
         >
@@ -568,7 +741,7 @@ if any of above exits for an order then it will be delivery status for that orde
             name="search"
             size={20}
           />
-          <TextInput       
+          <TextInput
             style={{ marginRight: 15, marginLeft: 10 }}
             onChangeText={text => this.SearchFilterFunction(text)}
             value={this.state.text}
@@ -605,25 +778,44 @@ if any of above exits for an order then it will be delivery status for that orde
           {this.state.showFilter ? (
             <View style={{ flexDirection: "row" }}>
               <RadioGroup
-                flexDirection="row"
-                radioButtons={this.state.filterData}
-                onPress={this.onPress}
+                // flexDirection='col'
+                // labelStyle={{fontSize:8}}
+                // radioButtons={this.state.filterData}
+                // onPress={this.onPress}
+                horizontal
+                options={radiogroup_options}
+                onChange={option => this.onPressMe(option)}
+                CircleStyle={{
+                  width: 15,
+                  height: 15,
+                  borderColor: "#000",
+                  borderWidth: 0.3,
+                  margin: 5,
+                  fillColor: "#90caf9"
+                }}
               />
             </View>
           ) : null}
         </View>
 
         <FlatList
-          data={this.state.listDataSource}   
+          data={this.state.listDataSource}
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.isRefreshing}
+              onRefresh={this.onRefresh}
+            />
+          }
           renderItem={({ item, index }) => (
             <View style={styles.container}>
-              {/*Code for Single Collapsible Start*/} 
+              {/*Code for Single Collapsible Start*/}
               {(item.deliverystatus === "packed" ||
                 item.deliverystatus === "new") &&
-              !(item.paymentstatus === "credit") &&  (item.iscancel === "no")? (  
+              !(item.paymentstatus === "credit") &&
+              item.iscancel === "no" ? (
                 <TouchableOpacity
                   onPress={() => this.toggleExpanded(item.orderid)}
-                  onLongPress={() => this.showCancelOrderDialog(item.orderid)} 
+                  onLongPress={() => this.showCancelOrderDialog(item.orderid)}
                   delayLongPress={1000}
                 >
                   <View style={styles.header}>
@@ -635,35 +827,42 @@ if any of above exits for an order then it will be delivery status for that orde
                       }}
                     >
                       <Text style={styles.headerText}>{item.customername}</Text>
-                      <View style={{flexDirection:'row'}}>
-                      <Text style={styles.headerText}>{item.totalcost} Rs</Text>
+                      <View style={{ flexDirection: "row" }}>
+                        <Text style={styles.headerText}>
+                          {item.totalcost} Rs
+                        </Text>
 
-                      <MaterialCommunityIcons
-                          style={{  color: "#ffffff", marginLeft:5, marginRight:5}}
+                        <MaterialCommunityIcons
+                          style={{
+                            color: "#ffffff",
+                            marginLeft: 5,
+                            marginRight: 5
+                          }}
                           name="dots-vertical"
                           size={20}
                         />
 
-                      {item.deliverystatus === "new" ? (
-                        <SimpleLineIcons
-                          style={{ color: "#2979ff" }}
-                          name="emotsmile"
-                          size={20}
-                        />
-                      ) : item.deliverystatus === "packed" ? (
-                        <MaterialCommunityIcons
-                          style={{ color: "#2979ff" }}
-                          name="package-variant"
-                          size={20}
-                        />
-                      ) : item.deliverystatus === "ofd" ? (
-                        <MaterialIcons
-                          style={{ color: "#2979ff" }}
-                          name="directions-bike"
-                          size={20}
-                        />
-                      ) : null}
-                    </View>
+                        {item.deliverystatus === "new" ? (
+                          <SimpleLineIcons
+                            style={{ color: "#2979ff" , transform: [{ rotate: '360deg'}]}}
+                            name="social-twitter"
+                            
+                            size={20}
+                          />
+                        ) : item.deliverystatus === "packed" ? (
+                          <MaterialCommunityIcons
+                            style={{ color: "#2979ff" }}
+                            name="package-variant"
+                            size={20}
+                          />
+                        ) : item.deliverystatus === "ofd" ? (
+                          <MaterialIcons
+                            style={{ color: "#2979ff" }}
+                            name="directions-bike"
+                            size={20}
+                          />
+                        ) : null}
+                      </View>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -687,20 +886,26 @@ if any of above exits for an order then it will be delivery status for that orde
                       }}
                     >
                       <Text style={styles.headerText}>{item.customername}</Text>
-                      <View style={{flexDirection:'row'}}>
-                      <Text style={styles.headerText}>{item.totalcost} Rs</Text>
+                      <View style={{ flexDirection: "row" }}>
+                        <Text style={styles.headerText}>
+                          {item.totalcost} Rs
+                        </Text>
 
-                      <MaterialCommunityIcons
-                          style={{  color: "#ffffff", marginLeft:5, marginRight:5}}
+                        <MaterialCommunityIcons
+                          style={{
+                            color: "#ffffff",
+                            marginLeft: 5,
+                            marginRight: 5
+                          }}
                           name="dots-vertical"
                           size={20}
                         />
                         <Feather
-                        style={{ color: "#424242" }}
-                        name="arrow-down-left"
-                        size={20}
-                      />
-                        </View>
+                          style={{ color: "#424242" }}
+                          name="arrow-down-left"
+                          size={20}
+                        />
+                      </View>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -712,7 +917,7 @@ if any of above exits for an order then it will be delivery status for that orde
                 >
                   <View
                     style={{
-                      backgroundColor: "rgba(0,0,0, 0.1)		",
+                      backgroundColor: "rgba(0,0,0, 0.1)",
                       padding: 16
                     }}
                   >
@@ -734,24 +939,34 @@ if any of above exits for an order then it will be delivery status for that orde
                       >
                         {item.customername}
                       </Text>
-                      <View style={{flexDirection:'row'}}>
-                      <Text style={{fontSize: 16,
-                          fontWeight: "500",
-                          fontFamily: "sans-serif",
-                          textDecorationLine: "line-through",
-                          textDecorationStyle: "solid"}}>{item.totalcost} Rs</Text>
+                      <View style={{ flexDirection: "row" }}>
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontWeight: "500",
+                            fontFamily: "sans-serif",
+                            textDecorationLine: "line-through",
+                            textDecorationStyle: "solid"
+                          }}
+                        >
+                          {item.totalcost} Rs
+                        </Text>
 
-                      <MaterialCommunityIcons
-                          style={{  color: "#ffffff", marginLeft:5, marginRight:5}}
+                        <MaterialCommunityIcons
+                          style={{
+                            color: "#ffffff",
+                            marginLeft: 5,
+                            marginRight: 5
+                          }}
                           name="dots-vertical"
                           size={20}
                         />
 
-                      <MaterialIcons
-                        style={{ color: "#e91e63" }}
-                        name="block"
-                        size={20}
-                      />
+                        <MaterialIcons
+                          style={{ color: "#e91e63" }}
+                          name="block"
+                          size={20}
+                        />
                       </View>
                     </View>
                   </View>
@@ -776,39 +991,46 @@ if any of above exits for an order then it will be delivery status for that orde
                       }}
                     >
                       <Text style={styles.headerText}>{item.customername}</Text>
-                      <View style={{flexDirection:'row'}}>
-                      <Text style={styles.headerText}>{item.totalcost} Rs</Text>
+                      <View style={{ flexDirection: "row" }}>
+                        <Text style={styles.headerText}>
+                          {item.totalcost} Rs
+                        </Text>
 
-                      <MaterialCommunityIcons
-                          style={{  color: "#ffffff", marginLeft:5, marginRight:5}}
+                        <MaterialCommunityIcons
+                          style={{
+                            color: "#ffffff",
+                            marginLeft: 5,
+                            marginRight: 5
+                          }}
                           name="dots-vertical"
                           size={20}
                         />
 
-                        {item.deliverystatus === 'ofd'?    
-                        
-                        <MaterialIcons
-                          style={{ color: "#2979ff"}}
-                          name="directions-bike"
-                          size={20}
-                        />: item.deliverystatus ==='completed'?
-                        <MaterialCommunityIcons
-                          style={{ color: "#2979ff" }}
-                          name="check"
-                          size={20}
-                        />: item.paymentstatus === 'received'?
-                        <MaterialCommunityIcons
-                          style={{ color: "#2979ff" }} 
-                          name="check-all"
-                          size={20}
-                        />:
-                        null}
+                        {item.deliverystatus === "ofd" ? (
+                          <MaterialIcons
+                            style={{ color: "#2979ff" }}
+                            name="directions-bike"
+                            size={20}
+                          />
+                        ) : item.deliverystatus === "completed" ? (
+                          <MaterialCommunityIcons
+                            style={{ color: "#2979ff" }}
+                            name="check"
+                            size={20}
+                          />
+                        ) : item.paymentstatus === "received" ? (
+                          <MaterialCommunityIcons
+                            style={{ color: "#2979ff" }}
+                            name="check-all"
+                            size={20}
+                          />
+                        ) : null}
                       </View>
                     </View>
                   </View>
                 </TouchableOpacity>
               )}
-              {/*Content of Single Collapsible*/} 
+              {/*Content of Single Collapsible*/}
               <Collapsible
                 collapsed={
                   !(activeSections && activeSections.includes(item.orderid))
@@ -900,33 +1122,131 @@ if any of above exits for an order then it will be delivery status for that orde
                     </SwipeItem>
                   ))}
 
-                  {item.iscancel === 'no' ?
-                
-                (  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-evenly"
-                    }}
-                  >
-                    <MaterialIcons
-                      style={{ marginRight: 5, marginLeft: 15, marginTop: 15 }}
-                      name="directions-bike"
-                      size={20}
-                    />
+                  {item.iscancel === "no" ? (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-evenly"
+                      }}
+                    >
+                      <MaterialIcons
+                        style={{
+                          marginRight: 5,
+                          marginLeft: 15,
+                          marginTop: 15
+                        }}
+                        name="directions-bike"
+                        size={20}
+                      />
 
-                    {item.deliverystatus === "packed" ? (
+                      {item.deliverystatus === "packed" ? (
+                        <CheckBox
+                          title="Packed"
+                          center
+                          size={20}
+                          checkedIcon="dot-circle-o"
+                          uncheckedIcon="circle-o"
+                          onPress={() =>
+                            this.toggleCheckboxPacked(
+                              item,
+                              item.orderid + "Packed"
+                            )
+                          }
+                          checked={true}
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      ) : (
+                        <CheckBox
+                          title="Packed"
+                          center
+                          size={20}
+                          checkedIcon="dot-circle-o"
+                          uncheckedIcon="circle-o"
+                          onPress={() =>
+                            this.toggleCheckboxPacked(
+                              item,
+                              item.orderid + "Packed"
+                            )
+                          }
+                          checked={
+                            checkboxes &&
+                            checkboxes.includes(item.orderid + "Packed")
+                          }
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      )}
+
                       <CheckBox
-                        title="Packed"
+                        title="Out for Delivery"
                         center
                         size={20}
                         checkedIcon="dot-circle-o"
                         uncheckedIcon="circle-o"
                         onPress={() =>
-                          this.toggleCheckboxPacked(
+                          this.toggleCheckboxOFD(item, item.orderid + "ofd")
+                        }
+                        checked={
+                          checkboxes &&
+                          checkboxes.includes(item.orderid + "ofd")
+                        }
+                        textStyle={{ fontSize: 10 }}
+                        containerStyle={{
+                          backgroundColor: "transparent",
+                          borderColor: "#fff"
+                        }}
+                      />
+
+                      <CheckBox
+                        title="Completed"
+                        center
+                        size={20}
+                        checkedIcon="dot-circle-o"
+                        uncheckedIcon="circle-o"
+                        onPress={() =>
+                          this.toggleCheckboxCompleted(
                             item,
-                            item.orderid + "Packed"
+                            item.orderid + "Completed"
                           )
                         }
+                        checked={
+                          checkboxes &&
+                          checkboxes.includes(item.orderid + "Completed")
+                        }
+                        textStyle={{ fontSize: 10 }}
+                        containerStyle={{
+                          backgroundColor: "transparent",
+                          borderColor: "#fff"
+                        }}
+                      />
+                    </View>
+                  ) : null}
+
+                  {item.iscancel === "no" ? (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-evenly",
+                        flexWrap: "wrap"
+                      }}
+                    >
+                      <Text style={{ marginTop: 12, fontSize: 18 }}>
+                        {"\u20B9"}
+                      </Text>
+
+                      <CheckBox
+                        title="Pending"
+                        center
+                        size={20}
+                        // onPress={() => this.toggleCheckboxPending(item, item.orderid+'Pending')}
+                        // checked={payments && payments.includes(item.orderid+'Pending')}
                         checked={true}
                         textStyle={{ fontSize: 10 }}
                         containerStyle={{
@@ -934,22 +1254,19 @@ if any of above exits for an order then it will be delivery status for that orde
                           borderColor: "#fff"
                         }}
                       />
-                    ) : (
+
                       <CheckBox
-                        title="Packed"
+                        title="Credit"
                         center
                         size={20}
-                        checkedIcon="dot-circle-o"
-                        uncheckedIcon="circle-o"
                         onPress={() =>
-                          this.toggleCheckboxPacked(
+                          this.toggleCheckboxCredit(
                             item,
-                            item.orderid + "Packed"
+                            item.orderid + "Credit"
                           )
                         }
                         checked={
-                          checkboxes &&
-                          checkboxes.includes(item.orderid + "Packed")
+                          payments && payments.includes(item.orderid + "Credit")
                         }
                         textStyle={{ fontSize: 10 }}
                         containerStyle={{
@@ -957,127 +1274,29 @@ if any of above exits for an order then it will be delivery status for that orde
                           borderColor: "#fff"
                         }}
                       />
-                    )}
 
-                    <CheckBox
-                      title="Out for Delivery"
-                      center
-                      size={20}
-                      checkedIcon="dot-circle-o"
-                      uncheckedIcon="circle-o"
-                      onPress={() =>
-                        this.toggleCheckboxOFD(item, item.orderid + "ofd")
-                      }
-                      checked={
-                        checkboxes && checkboxes.includes(item.orderid + "ofd")
-                      }
-                      textStyle={{ fontSize: 10 }}
-                      containerStyle={{
-                        backgroundColor: "transparent",
-                        borderColor: "#fff"
-                      }}
-                    />
-
-                    <CheckBox
-                      title="Completed"
-                      center
-                      size={20}
-                      checkedIcon="dot-circle-o"
-                      uncheckedIcon="circle-o"
-                      onPress={() =>
-                        this.toggleCheckboxCompleted(
-                          item,
-                          item.orderid + "Completed"
-                        )
-                      }
-                      checked={
-                        checkboxes &&
-                        checkboxes.includes(item.orderid + "Completed")
-                      }
-                      textStyle={{ fontSize: 10 }}
-                      containerStyle={{
-                        backgroundColor: "transparent",
-                        borderColor: "#fff"
-                      }}
-                    />
-                  </View>
-                 
-                  )
-                :null
-                
-                  }
-
-                  {item.iscancel === 'no' ?
-                
-                (
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-evenly",
-                      flexWrap: "wrap"
-                    }}
-                  >
-                    <Text style={{ marginTop: 12, fontSize: 18 }}>
-                      {"\u20B9"}
-                    </Text>
-
-                    <CheckBox
-                      title="Pending"
-                      center
-                      size={20}
-                      // onPress={() => this.toggleCheckboxPending(item, item.orderid+'Pending')}
-                      // checked={payments && payments.includes(item.orderid+'Pending')}
-                      checked={true}
-                      textStyle={{ fontSize: 10 }}
-                      containerStyle={{
-                        backgroundColor: "transparent",
-                        borderColor: "#fff"
-                      }}
-                    />
-
-                    <CheckBox
-                      title="Credit"
-                      center
-                      size={20}
-                      onPress={() =>
-                        this.toggleCheckboxCredit(item, item.orderid + "Credit")
-                      }
-                      checked={
-                        payments && payments.includes(item.orderid + "Credit")
-                      }
-                      textStyle={{ fontSize: 10 }}
-                      containerStyle={{
-                        backgroundColor: "transparent",
-                        borderColor: "#fff"
-                      }}
-                    />
-
-                    <CheckBox
-                      title="Received"
-                      center
-                      size={20}
-                      onPress={() =>
-                        this.toggleCheckboxReceived(
-                          item,
-                          item.orderid + "Received"
-                        )
-                      }
-                      checked={
-                        payments && payments.includes(item.orderid + "Received")
-                      }
-                      textStyle={{ fontSize: 10 }}
-                      containerStyle={{
-                        backgroundColor: "transparent",
-                        borderColor: "#fff"
-                      }}
-                    />
-                  </View>
-                
-                  )
-                :null
-                
-                  }
-                
+                      <CheckBox
+                        title="Received"
+                        center
+                        size={20}
+                        onPress={() =>
+                          this.toggleCheckboxReceived(
+                            item,
+                            item.orderid + "Received"
+                          )
+                        }
+                        checked={
+                          payments &&
+                          payments.includes(item.orderid + "Received")
+                        }
+                        textStyle={{ fontSize: 10 }}
+                        containerStyle={{
+                          backgroundColor: "transparent",
+                          borderColor: "#fff"
+                        }}
+                      />
+                    </View>
+                  ) : null}
                 </View>
               </Collapsible>
               {/*Code for Single Collapsible Ends*/}
@@ -1130,37 +1349,6 @@ if any of above exits for an order then it will be delivery status for that orde
                     onPress={() => this.handleDontCancel(item.orderid)}
                   />
                 </Dialog.Container>
-
-                {/* <Dialog
-    title="Cancel Order !"
-    visible={ordercancel && ordercancel.includes(item.orderid)}
-    onTouchOutside={() => this.handleDontCancel(item.orderid)}
-    contentStyle={
-                        {
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexDirection: 'row'
-                        }
-                    }
-
-    positiveButton={{
-        title: "YES",
-        onPress: () => this.handleYesCancel(item.orderid)
-    }} 
-    negativeButton={{
-        title: "NO",
-        onPress: () => this.handleDontCancel(item.orderid)
-    }}
-
-    
-    >
-    
-    <View styel={{flex: 1, flexDirection:'row'}}> 
-    <Text style={{fontWeight: '500'}}>{item.customername}</Text>
-    <Text style={{paddingLeft: 50}}>    {item.totalcost} Rs.</Text>
-    </View>        
-    
-</Dialog> */}
               </View>
             </View>
           )}
@@ -1348,10 +1536,10 @@ const styles = StyleSheet.create({
   },
   textInputStyle: {
     height: 40,
-    marginTop:15,
+    marginTop: 15,
     borderWidth: 1,
     paddingLeft: 10,
-    borderColor: '#009688',
-    backgroundColor: '#FFFFFF',
-  },
+    borderColor: "#009688",
+    backgroundColor: "#FFFFFF"
+  }
 });

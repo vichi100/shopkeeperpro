@@ -76,12 +76,13 @@ class Grocery extends Component {
   //   });
   // }
 
-  _goTOBasket = (props, customerMobile, customerName, deliveryaddress) => {
-    //console.log('_goTOBasket in grocery customerMobile: '+customerMobile)
+  _goTOBasket = (props, customerMobile, customerName, deliveryaddress, customerid) => {
+    console.log('_goTOBasket in grocery customerid: '+customerid)
     props.navigation.navigate("Cart", {
       customerMobile: customerMobile,
       customerName: customerName,
-      deliveryaddress: deliveryaddress
+      deliveryaddress: deliveryaddress,
+      customerid: customerid
     });
   };
 
@@ -112,6 +113,7 @@ class Grocery extends Component {
     var customerName = navigation.getParam("customerName");
     // console.log('in grocery customerName: '+customerName)
     var deliveryaddress = navigation.getParam("deliveryaddress");
+    var customerid = navigation.getParam("customerid");
     return (
       <View style={styles.container}>
         <View
@@ -142,13 +144,14 @@ class Grocery extends Component {
           onPress={this.props.addItemToCart}
         />
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() =>
             this._goTOBasket(
               props,
               customerMobile,
               customerName,
-              deliveryaddress
+              deliveryaddress,
+              customerid
             )
           }
           style={{
@@ -172,7 +175,7 @@ class Grocery extends Component {
           >
             <Text style={{ color: "#ffffff" }}>GO TO BASKET</Text>
           </View>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     );
   }

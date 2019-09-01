@@ -94,3 +94,12 @@ OrderListScreen
 "_id":"5d4aa7d41b39006e776d6948","orderid":"69c0e603-9de8-4d86-b71b-904edfc5bd92","shopid":"vichishop",
 "shopname":"Go see","customerid":"0001","customername":"Aaron Alphonso","customermobile":"+91 7030 625 988",
 "deliveryaddress":null,"totalcost":"560","deliverystatus":"packed","paymentstatus":"pending","paymentmode":"NA"}
+
+
+
+----------
+744
+749
+1509
+2579
+1694
