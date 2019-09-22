@@ -36,6 +36,7 @@ const cartItems = (state = [], action) => {
       }
       
     case "REMOVE_FROM_CART":
+      console.log('REMOVE_FROM_CART: '+ JSON.stringify(state.filter(cartItem => cartItem.productid !== action.payload.productid)))
       return state.filter(cartItem => cartItem.productid !== action.payload.productid);
     case "CHANGE_QTY":
       console.log('CHANGE_QTY')
@@ -43,8 +44,8 @@ const cartItems = (state = [], action) => {
       console.log('CHANGE_QTY: '+JSON.stringify(data))
       return data.filter(cartItem => cartItem.productid !== '1');
     
-    case "CLEAR_COMPLETED":
-      console.log('CLEAR_COMPLETED')
+    case "EMPTY_CART":
+      // console.log('CLEAR_COMPLETED')
       state = []
       return state
  

@@ -59,7 +59,7 @@ class AnimatedBar extends Component {
 
     return (
       <View style={{ flexDirection: "column", flex: 1 }}>
-      <Text style={{ fontFamily: "sans-serif", numberOfLines: 1, color: '#616161', fontSize:12, fontWeight:'300'}}> 
+      <Text style={{ fontFamily: "sans-serif", color: '#616161', fontSize:12, fontWeight:'300'}}> 
             {this.props.value._id.customername}-{this.props.value.totalAmount}
           </Text>
         <Animated.View style={barStyles}>

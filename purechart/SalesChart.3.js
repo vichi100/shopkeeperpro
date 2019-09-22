@@ -185,7 +185,7 @@ export default class SalesChart extends React.Component {
           {this.state.hBarData.map((value, index) => <AnimatedBar value={value} key={index} />)}
         </View>
         <View style={{marginBottom: 30, marginTop:15, flex:1, flexDirection:'row', justifyContent:'space-between'}}>
-        <Text style={{ fontFamily: 'sans-serif', fontWeight:'500', numberOfLines:1}}>Top 15 buyer of the day</Text>
+        <Text style={{ fontFamily: 'sans-serif', fontWeight:'500', }}>Top 15 buyer of the day</Text>
 
         
             <SwitchButton

@@ -103,3 +103,40 @@ OrderListScreen
 1509
 2579
 1694
+
+------
+shop
+simply
+
+
+shomply
+lozista
+shopkeeperin
+
+now your own shopkeeper is more near to you.
+
+
+systemctl restart httpd
+
+<VirtualHost *:80>
+    DocumentRoot "/var/www/html/mistershopkeeper.com"
+    ServerName www.mistershopkeeper.com
+    ServerAlias mistershopkeeper.com
+   <Directory "/var/www/html/mistershopkeeper.com">
+    Options FollowSymLinks
+    AllowOverride All
+   Options -Indexes
+    </Directory>
+</VirtualHost>
+
+
+
+style.build.sk.css
+
+.section--hero #e1f5fe
+.page-header   #81d4fa
+
+h1.block_title
+block_body
+
+block--hero

@@ -17,7 +17,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Dialog from "react-native-dialog";
 
 
+import withPreventDoubleClick from '../withPreventDoubleClick';
 
+const TouchableOpacityEx = withPreventDoubleClick(TouchableOpacity);
 
 const window = Dimensions.get("window"); 
 var cartData;
@@ -61,7 +63,8 @@ class CartScreen extends Component {
     customerMobile,
     customerName,
     deliveryaddress,
-    cartData
+    cartData,
+    totalcost
   ) => {
     console.log("cartItems: " + JSON.stringify(this.props.cartItems)); 
     var shopmobile = await AsyncStorage.getItem("shopmobile");
@@ -74,16 +77,7 @@ class CartScreen extends Component {
     var customerid = customerid;
     console.log("customerMobile: " + customerMobile);
     console.log("customerid: " + customerid);
-    // const requestBody = {
-    //   query: `
-    //         mutation{
-    //           createOrder(orderInput: {shopid: "${shopid}", shopname:"${shopname}", customerid:"${customerid}", customername:"${customername}", customermobile:"${customermobile}",
-    //           deliveryaddress:"${deliveryaddress}", totalcost:"${this.state.totalCost}" , dilevirystatus:"${dilevirystatus}" , paymentstatus:"${paymentstatus}" , paymentmode:"${paymentmode}"}){
-    //               shopid
-    //            }
-    //         }
-    //         `
-    // };
+    
 
     const requestBody = {
       shopid: shopid,
@@ -93,7 +87,7 @@ class CartScreen extends Component {
       customermobile: customerMobile,
       deliveryaddress: deliveryaddress,
       products: this.props.cartItems,
-      totalcost: this.state.totalCost,
+      totalcost: totalcost,
       deliverystatus: deliverystatus,
       paymentstatus: paymentstatus,
       paymentmode: paymentmode,
@@ -146,7 +140,7 @@ class CartScreen extends Component {
     this.props.navigation.navigate("MainTabNavigator", {
         shopmobile: "shopmobile"
     });
-    this.props.dispatch(this._dataFetched()) 
+    this.props.emptyCart()
   };
 
   _dataFetched = () => ({
@@ -163,8 +157,8 @@ class CartScreen extends Component {
   
 
   calculateTotalCost = () => {
-    console.log("bar");
-    console.log("calculateTotalCost");
+    // console.log("calculateTotalCost");
+    console.log("calculateTotalCost called");
     var totalcost = 0;
     var itemCount = 0;
     // console.log("cartData before filter: "+JSON.stringify(this.props.cartItems))
@@ -202,7 +196,7 @@ class CartScreen extends Component {
   render() {
     console.log("CartScreen: "+ JSON.stringify(this.props.cartItems));
     this.props.cartItems=[];
-    console.log("CartScreen empty: "+ JSON.stringify(this.props.cartItems)); 
+    //console.log("CartScreen empty: "+ JSON.stringify(this.props.cartItems)); 
     cartData = this.props.cartItems;
     const { navigation } = this.props;
     var customerMobile = navigation.getParam("customerMobile");
@@ -212,6 +206,34 @@ class CartScreen extends Component {
     var deliveryaddress = navigation.getParam("deliveryaddress");
     var customerid = navigation.getParam("customerid");
     console.log("customerid: " + customerid);
+    // CALCULATE TOTAL COST LOGIC START
+    var totalcost = 0;
+    var itemCount = 0;
+    Object.keys(cartData).map((keyName, keyIndex) => {
+      // use keyName to get current key's name
+
+      var qty = cartData[keyName].qty;
+      console.log(" qty: " + qty);
+      if (qty == undefined) {
+        // console.log(' I m in qty qty qty: '+qty)
+        qty = 1;
+      }
+      itemCount = parseFloat(itemCount) + parseFloat(qty);
+
+      var price = cartData[keyName].price;
+      // total cost of single item
+      console.log("parseFloat(price): " + parseFloat(price));
+      var singleItemCost = parseFloat(price) * parseFloat(qty);
+      console.log("singleItemCost: " + singleItemCost);
+      // totalcost = parseFloat(totalcost) + parseFloat(price)
+      totalcost = totalcost + singleItemCost;
+      console.log("totalcost: " + totalcost);
+
+      // console.log("data : " + response[keyName].type);
+      // and a[keyName] to get its value
+    });
+
+    //CALCULATE TOTAL COST LOGIC: END
     if(cartData.length === 0 ){
       return (
         <View style={{flex:1, justifyContent:'center', alignItems: 'center'}}>
@@ -242,35 +264,36 @@ class CartScreen extends Component {
         
         <View
           style={{
-            backgroundColor: "rgba(255,69,0, 0.9)",
+            backgroundColor: "rgba(63, 191, 127, 0.7)",
             alignItems: "center",
             paddingTop: 10,
             paddingBottom: 10,
             marginBottom: 1
           }}
-        >
+        >   
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <Text style={{ color: "#fff" }}>
-              Items: {this.state.totalItems}
+            <Text style={{ color: "#fff",  fontFamily: "sans-serif", }}>
+              ITEMS: {itemCount}
             </Text>
-            <Text style={{ marginLeft: 15, marginRight: 15, color: "#fff" }}>
+            <Text style={{ marginLeft: 15, marginRight: 15, color: "#fff", fontFamily: "sans-serif", }}>
               |
             </Text>
-            <Text style={{ color: "#fff" }}>
-              Total Amount: Rs.{this.state.totalCost}
+            <Text style={{ color: "#fff", fontFamily: "sans-serif", }}>
+              TOTAL AMOUNT: {totalcost} Rs.
             </Text>
           </View>
         </View>
-        <TouchableOpacity
+        <TouchableOpacityEx
           onPress={() =>
             this.sendOrder(
               customerid,
               customerMobile,
               customerName,
               deliveryaddress,
-              cartData
+              cartData,
+              totalcost
             )
           }
           style={{
@@ -294,7 +317,7 @@ class CartScreen extends Component {
           >
             <Text style={{ color: "#ffffff" , fontSize:14}}>SHARE ORDER WITH CUSTOMER</Text>
           </View>
-        </TouchableOpacity>
+        </TouchableOpacityEx>
 
         <Dialog.Container
                   visible={this.state.dialogVisible}
@@ -376,8 +399,8 @@ const mapDispatchToProps = dispatch => {
         type: "REMOVE_FROM_CART",
         payload: product
       }),
-      clearCompleted: () => dispatch({
-      type: "CLEAR_COMPLETED",
+      emptyCart: () => dispatch({
+      type: "EMPTY_CART",
       payload:[]
     })
   };

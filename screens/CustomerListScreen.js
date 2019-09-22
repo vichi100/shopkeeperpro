@@ -23,25 +23,54 @@ import { Feather } from "@expo/vector-icons";
 
 
 import { FontAwesome } from "@expo/vector-icons";
+import { AsyncStorage } from "react-native";
 
 export default class CustomerListScreen extends Component {
 
-    static navigationOptions = {
-        //To set the header image and title for the current Screen
-        title: 'Customers',
-        headerBackTitle: null,
-        headerStyle: {
-          //backgroundColor: '#263238',
-          //Background Color of Navigation Bar
-        },
-        headerTitleStyle: {
-          justifyContent: 'center', 
-          color:'#757575',
-          textAlign:"left", 
-            flex:1
+  static navigationOptions = ({ navigation }) => {
+    //https://stackoverflow.com/questions/45596645/react-native-react-navigation-header-button-event
+    const { params = {} } = navigation.state;
+    return {
+      title: "Customers",
+      headerTitleStyle: {
+        justifyContent: "center",
+        color: "#757575",
+        textAlign: "left",
+        flex: 1
       },
-      headerTintColor: "#757575"
-      }
+        // headerStyle: {backgroundColor:'#3c3c3c'},
+        headerRight: <Feather
+        style={{ marginRight: 10, color: "#424242" }}
+        name={"arrow-down-left"}
+        size={25}
+        onPress={() => params.openCreditOrderList()} 
+      />
+      
+      
+      };
+};
+
+openCreditOrderList = () =>{
+  console.log('openCreditOrderList');
+  this.props.navigation.navigate("CreditOrderList");
+}
+
+    // static navigationOptions = {
+    //     //To set the header image and title for the current Screen
+    //     title: 'Customers',
+    //     headerBackTitle: null,
+    //     headerStyle: {
+    //       //backgroundColor: '#263238',
+    //       //Background Color of Navigation Bar
+    //     },
+    //     headerTitleStyle: {
+    //       justifyContent: 'center', 
+    //       color:'#757575',
+    //       textAlign:"left", 
+    //         flex:1
+    //   },
+    //   headerTintColor: "#757575"
+    //   }
   constructor(props) {
     super(props);
     //setting default state
@@ -72,6 +101,7 @@ export default class CustomerListScreen extends Component {
   }
 
   async componentDidMount() {
+    this.props.navigation.setParams({ openCreditOrderList: this.openCreditOrderList });
     // Ask for permission to query contacts.
     const permission = await Permissions.askAsync(Permissions.CONTACTS);
     var contactDataArray = []
@@ -90,7 +120,7 @@ export default class CustomerListScreen extends Component {
     });
     if (contacts.total > 0) {
       console.log('contacts size '+ contacts.total )
-
+      var shopid = await AsyncStorage.getItem("shopid");
       for (let i = 0; i < contacts.total; i++) { 
         if (contacts.data[i] !== undefined && contacts.data[i].firstName) { 
           try {
@@ -104,7 +134,7 @@ export default class CustomerListScreen extends Component {
               fullName = name + " " + lastName;
             }
 
-            const obj = { name: fullName, mobile: mobile, address: null };
+            const obj = { name: fullName, mobile: mobile,  shopid:shopid};
             // this.state.dataSource.push(obj); // Push the object
             contactDataArray.push(obj)
           } catch (e) {
@@ -112,7 +142,7 @@ export default class CustomerListScreen extends Component {
           }
         }
       }
-      //console.log(this.state.arrayholder)
+      //console.log(this.state.arrayholder)      
       // write customer contacts to server 
 
       // this.setState({ arrayholder: this.state.dataSource, isLoading: false });
@@ -124,7 +154,7 @@ export default class CustomerListScreen extends Component {
     //console.log('contactsData: '+ JSON.stringify(contactsData))
     console.log('contactsData size: '+ contactsData.length)
     const requestBody = JSON.stringify(contactsData) 
-    console.log('contactsData size: '+ requestBody.length)
+    // console.log('contactsData size: '+ requestBody.length)
     
     console.log('registerShop')  
     axios({ 
@@ -137,13 +167,13 @@ export default class CustomerListScreen extends Component {
       },  
       data: requestBody        
     }).then(result => { 
-      console.log("Resp Data: "+JSON.stringify(result.data));
+      // console.log("Resp Data: "+JSON.stringify(result.data));
 
       const customerContactDetailsData = result.data
 
       this.setState({ dataSource: customerContactDetailsData, arrayholder: customerContactDetailsData, isLoading: false });
       // this.props.navigation.navigate("MainTabNavigator", {
-      //   shopmobile: "shopmobile"   
+      //   shopmobile: "shopmobile"    
       // });               
     });              
   }                 
@@ -296,15 +326,15 @@ export default class CustomerListScreen extends Component {
     })
       .then(res => res.json())
       .then(res => {
-        // console.log("data returned:", JSON.stringify(res))
-        const deliveryaddress = res.deliveryaddress;
+        // console.log("customer data returned:", JSON.stringify(res))
+        //const customerdeliveryaddress = res.customeraddresslineone+ ;
 
-        console.log("deliveryaddress: ", deliveryaddress);
+        // console.log("deliveryaddress: ", deliveryaddress);
         this.props.navigation.navigate("CustomerOrdersDetails", {
           customerMobile: item.customermobile,  
           customerName: item.customernamebyshop, 
           customerDetails: item,
-          deliveryaddress: deliveryaddress
+          //deliveryaddress: deliveryaddress
         });
        
         
@@ -333,8 +363,12 @@ export default class CustomerListScreen extends Component {
     if (this.state.isLoading) {
       //Loading View while data is loading
       return (
-        <View style={{ flex: 1, paddingTop: 20 }}>
-          <ActivityIndicator />
+        <View style={{ flex: 1, paddingTop: 20, justifyContent:'center', alignItems:'center' }}>
+          <ActivityIndicator 
+            color = '#ea80fc'
+            size = "large"
+ 
+          />
         </View>
       );
     }

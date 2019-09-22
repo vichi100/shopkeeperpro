@@ -42,7 +42,7 @@ const ShoppingCartIcon = (props) => (
             position: 'absolute', height: 30, width: 30, borderRadius: 15, backgroundColor: 'rgba(95,197,123,0.8)', right: 15, bottom: 15, alignItems: 'center', justifyContent: 'center', zIndex: 2000,
 
         }}>
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>{props.cartItems.length }</Text>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontFamily: "sans-serif" }}>{props.cartItems.length }</Text>
         </View>
         <Icon name="ios-cart" size={30} />
     </View>

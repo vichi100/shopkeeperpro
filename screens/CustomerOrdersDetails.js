@@ -13,12 +13,13 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { Feather } from "@expo/vector-icons";
-
+import moment from "moment";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 import { AsyncStorage } from "react-native";
 import axios from "axios";
 import { SERVER_URL } from "../Constants";
+
 
 // import RadioGroup from "../radiobutton/RadioGroup";
 
@@ -31,6 +32,9 @@ import Dialog from "react-native-dialog";
 
 import SwipeItem from "../swipeable/SwipeItem";
 import SwipeButtonsContainer from "../swipeable/SwipeButtonsContainer";
+import withPreventDoubleClick from '../withPreventDoubleClick';
+
+const TouchableOpacityEx = withPreventDoubleClick(TouchableOpacity);
 
 var radiogroup_options = [
   { id: 0, label: "All" },
@@ -104,7 +108,7 @@ export default class CustomerOrdersDetails extends Component {
       totalCostOfOrders: 0,
       totalNumberOfOrders: 0,
       totalCostOfPendingAmount: 0,
-      totalCostOfReceivedAmount: 0,
+      totalCostOfReceivedAmount: 0
     };
   }
 
@@ -141,21 +145,27 @@ export default class CustomerOrdersDetails extends Component {
         totalCostOfOrders: customerordersummary.totalCostOfOrders,
         totalNumberOfOrders: customerordersummary.totalNumberOfOrders,
         totalCostOfPendingAmount: customerordersummary.totalCostOfPendingAmount,
-        totalCostOfReceivedAmount: customerordersummary.totalCostOfReceivedAmount,
-      })
-
+        totalCostOfReceivedAmount:
+          customerordersummary.totalCostOfReceivedAmount
+      });
     });
   }
 
   _createNewOrder = async (customerDetails, deliveryaddress) => {
+    var shopid = await AsyncStorage.getItem("shopid");
     var shopmobile = await AsyncStorage.getItem("shopmobile");
     var shopname = await AsyncStorage.getItem("shopname");
     var shopaddress = await AsyncStorage.getItem("shopaddress");
     var customerid = customerDetails.customerid;
-    // console.log('shopmobile: '+ shopmobile);
-    // console.log('shopname: '+ shopname);
-    // console.log('shopaddress: '+ shopaddress);
-    if (shopmobile == null || shopname == null || shopaddress == null) {
+    console.log("shopmobile: " + shopmobile);
+    console.log("shopname: " + shopname);
+    console.log("shopaddress: " + shopaddress);
+    if (
+      shopid === null ||
+      shopmobile === null ||
+      shopname == null ||
+      shopaddress == null
+    ) {
       //console.log("I am in Google signInx");
       this.props.navigation.navigate("LoginScreen", {
         LogingSceenData: "eventDataFromBookingScreen"
@@ -171,11 +181,38 @@ export default class CustomerOrdersDetails extends Component {
     }
   };
 
-  addAddress = (customerDetails, deliveryaddress) => {
+  addAddress = (
+    customerDetails,
+    customeraddresslineone,
+    customeraddresslinetwo,
+    landmark,
+    city
+  ) => {
+    console.log(
+      "customerDetails: " +
+        JSON.stringify(customerDetails) +
+        " , customerDetails.name: " +
+        customerDetails.name
+    );
+    var customerName;
+    if (
+      !customerDetails.customername === null ||
+      !customerDetails.customername === undefined
+    ) {
+      customerName =
+        customerDetails.customernamebyshop + "/" + customerDetails.customername;
+    } else {
+      customerName = customerDetails.customernamebyshop;
+    }
+
     this.props.navigation.navigate("AddCustomerAddress", {
-      customerMobile: customerDetails.mobile,
-      customerName: customerDetails.name,
-      deliveryaddress: deliveryaddress
+      customerid: customerDetails.customerid,
+      customerMobile: customerDetails.customermobile,
+      customerName: customerName,
+      customeraddresslineone: customeraddresslineone,
+      customeraddresslinetwo: customeraddresslinetwo,
+      landmark: landmark,
+      city: city
     });
   };
 
@@ -292,6 +329,54 @@ export default class CustomerOrdersDetails extends Component {
 
     this.setState({ payments });
     // console.log("MS check a4: " + payments && payments.includes(id));
+  };
+
+  updateOrderDetails = (orderItem, status) => {
+    console.log("orderItem: " + JSON.stringify(orderItem));
+    var orderUpdateData = null;
+    if (status === "packed" || status === "ofd" || status === "completed") {
+      // update fileds: products, totalcost, deliverystatus, paymentstatus
+      orderUpdateData = {
+        orderid: orderItem.orderid,
+        totalcost: orderItem.totalcost,
+        products: orderItem.products,
+        status: status
+      };
+    } else if (
+      status === "pending" ||
+      status === "credit" ||
+      status === "received"
+    ) {
+      orderUpdateData = {
+        orderid: orderItem.orderid,
+        totalcost: orderItem.totalcost,
+        products: orderItem.products,
+        status: status
+      };
+    } else if (status === "cancelorder") {
+      orderUpdateData = {
+        orderid: orderItem.orderid,
+        status: status
+      };
+    }
+
+    axios({
+      // Of course the url should be where your actual GraphQL server is.
+      url: SERVER_URL + "/updateOrderDetails",
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      data: orderUpdateData
+    })
+      .then(result => {
+        console.log("Resp Data: " + JSON.stringify(result.data));
+        // this.setState({ listDataSource: result.data });
+      })
+      .catch(error => {
+        console.error(error);
+      });
   };
 
   showCancelOrderDialog = id => {
@@ -466,11 +551,52 @@ export default class CustomerOrdersDetails extends Component {
     const payments = this.state.payments;
     const ordercancel = this.state.ordercancel;
     const { navigation } = this.props;
-    customerDetails = navigation.getParam("customerDetails");
+
+    var from = navigation.getParam("from");
     // var customerMobile = navigation.getParam("customerMobile");
     // var customerName = navigation.getParam("customerName");
-    var deliveryaddress = navigation.getParam("deliveryaddress");
-    console.log("customerDetails: " + JSON.stringify(customerDetails));
+    var customeraddresslineone;
+    var customeraddresslinetwo;
+    var city;
+    var deliveryaddress;
+    if (from === "addcustomeraddress") {
+      customeraddresslineone = navigation.getParam("customeraddresslineone");
+      customeraddresslinetwo = navigation.getParam("customeraddresslinetwo");
+      landmark = navigation.getParam("landmark");
+      city = navigation.getParam("city");
+      console.log(customeraddresslineone);
+      console.log(customeraddresslinetwo);
+      console.log(landmark);
+      console.log(city);
+    } else {
+      customerDetails = navigation.getParam("customerDetails");
+      customeraddresslineone = customerDetails.customeraddresslineone;
+      customeraddresslinetwo = customerDetails.customeraddresslinetwo;
+      landmark = customerDetails.landmark;
+      city = customerDetails.city;
+    }
+    if (
+      customeraddresslineone !== null &&
+      customeraddresslineone !== undefined
+    ) {
+      deliveryaddress = customeraddresslineone;
+    }
+    if (
+      deliveryaddress !== null &&
+      (customeraddresslinetwo !== null && customeraddresslinetwo !== undefined)
+    ) {
+      deliveryaddress = deliveryaddress + ", " + customeraddresslinetwo;
+    }
+
+    if (
+      deliveryaddress !== null &&
+      (landmark !== null && landmark !== undefined)
+    ) {
+      deliveryaddress = deliveryaddress + ", " + landmark;
+    }
+    if (deliveryaddress !== null && (city !== null && city !== undefined)) {
+      deliveryaddress = deliveryaddress + ", " + city;
+    }
 
     // if (this.state.isLoading) {
     //   return (
@@ -501,12 +627,13 @@ export default class CustomerOrdersDetails extends Component {
               {customerDetails.customernamebyshop}/
               {customerDetails.customername}
             </Text>
-            {customerDetails.isRegisteredByCustomer === 'yes'? 
-            <MaterialCommunityIcons
-              style={{ width: 30, height: 30, color: "#2979ff" }}
-              name="account-check-outline"
-              size={25}
-            />: null}
+            {customerDetails.isRegisteredByCustomer === "yes" ? (
+              <MaterialCommunityIcons
+                style={{ width: 30, height: 30, color: "#2979ff" }}
+                name="account-check-outline"
+                size={25}
+              />
+            ) : null}
           </View>
           <View
             style={{ flexDirection: "row", marginLeft: 10, marginRight: 10 }}
@@ -525,15 +652,41 @@ export default class CustomerOrdersDetails extends Component {
               size={20}
             />
 
-            {deliveryaddress ? (
-              <Text style={{ fontSize: 14, color: "#000", paddingBottom: 7 }}>
-                {" "}
-                {deliveryaddress}{" "}
-              </Text>
+            {deliveryaddress !== null && deliveryaddress !== undefined ? (
+              <TouchableOpacity
+                onPress={() =>
+                  this.addAddress(
+                    customerDetails,
+                    customeraddresslineone,
+                    customeraddresslinetwo,
+                    landmark,
+                    city
+                  )
+                }
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: "#000",
+                    paddingBottom: 7,
+                    fontFamily: "sans-serif",
+                    marginRight: 10
+                  }}
+                >
+                  {" "}
+                  {deliveryaddress}{" "}
+                </Text>
+              </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 onPress={() =>
-                  this.addAddress(customerDetails, deliveryaddress)
+                  this.addAddress(
+                    customerDetails,
+                    customeraddresslineone,
+                    customeraddresslinetwo,
+                    landmark,
+                    city
+                  )
                 }
               >
                 <Text
@@ -564,11 +717,15 @@ export default class CustomerOrdersDetails extends Component {
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <Text style={{ color: "#fff" }}>Total Orders: {this.state.totalNumberOfOrders}</Text>
+            <Text style={{ color: "#fff" }}>
+              Total Orders: {this.state.totalNumberOfOrders}
+            </Text>
             <Text style={{ marginLeft: 15, marginRight: 15, color: "#fff" }}>
               |
             </Text>
-            <Text style={{ color: "#fff" }}>Total Amount: {this.state.totalCostOfOrders} Rs.</Text>
+            <Text style={{ color: "#fff" }}>
+              Total Amount: {this.state.totalCostOfOrders} Rs.
+            </Text>
           </View>
         </View>
 
@@ -581,21 +738,25 @@ export default class CustomerOrdersDetails extends Component {
             marginBottom: 1
           }}
         >
-          <View style={{ flexDirection: "column" , justifyContent:'center', alignItems:'center'}}>
-            <View style={{flexDirection:'row'}}>
+          <View
+            style={{
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center"
+            }}
+          >
+            <View style={{ flexDirection: "row" }}>
               <Feather
                 style={{ width: 30, height: 30, color: "#e1f5fe" }}
                 name="arrow-down-left"
                 size={20}
               />
-              <Text
-                style={{ color: "#fff", textAlign: "left",  }}
-              >
+              <Text style={{ color: "#fff", textAlign: "left" }}>
                 Amount pending: {this.state.totalCostOfPendingAmount} Rs.
               </Text>
             </View>
 
-            <View style={{flexDirection:'row', }}>
+            <View style={{ flexDirection: "row" }}>
               <MaterialCommunityIcons
                 style={{ width: 30, height: 30, color: "#e1f5fe" }}
                 name="briefcase-check"
@@ -612,7 +773,7 @@ export default class CustomerOrdersDetails extends Component {
         </View>
 
         <View style={{ width: w }}>
-          <TouchableOpacity
+          <TouchableOpacityEx
             onPress={() => this._createNewOrder(customerDetails)}
             style={{
               height: 50
@@ -628,7 +789,7 @@ export default class CustomerOrdersDetails extends Component {
             >
               <Text style={{ color: "#ffffff" }}>CREATE NEW ORDER</Text>
             </View>
-          </TouchableOpacity>
+          </TouchableOpacityEx>
         </View>
 
         {/* CUSTOMER ORDER LIST VIEW START*/}
@@ -640,14 +801,40 @@ export default class CustomerOrdersDetails extends Component {
               {/*Code for Single Collapsible Start*/}
               {(item.deliverystatus === "packed" ||
                 item.deliverystatus === "new") &&
-              !(item.paymentstatus === "credit") &&
+              !(
+                item.paymentstatus === "credit" ||
+                item.paymentstatus === "received"
+              ) &&
               item.iscancel === "no" ? (
                 <TouchableOpacity
                   onPress={() => this.toggleExpanded(item.orderid)}
                   onLongPress={() => this.showCancelOrderDialog(item.orderid)}
                   delayLongPress={1000}
                 >
-                  <View style={styles.header}>
+                  <View
+                    style={{
+                      backgroundColor: "rgba(142, 213, 87, 0.3)",
+                      padding: 12,
+                      flexDirection: "row"
+                    }}
+                  >
+                    <View>
+                      <Text style={{ fontSize: 10, marginRight: 10 }}>
+                        {
+                          moment(item.createdatetime)
+                            .format("DD-MMM")
+                            .split("-")[0]
+                        }
+                      </Text>
+                      <Text style={{ fontSize: 10, marginRight: 10 }}>
+                        {
+                          moment(item.createdatetime)
+                            .format("DD-MMM")
+                            .split("-")[1]
+                        }
+                      </Text>
+                    </View>
+
                     <View
                       style={{
                         flex: 1,
@@ -703,9 +890,26 @@ export default class CustomerOrdersDetails extends Component {
                   <View
                     style={{
                       backgroundColor: "rgba(245, 54, 29, 0.198)	",
-                      padding: 16
+                      padding: 12,
+                      flexDirection:'row'
                     }}
                   >
+                  <View>
+                      <Text style={{ fontSize: 10, marginRight: 10 }}>
+                        {
+                          moment(item.createdatetime)
+                            .format("DD-MMM")
+                            .split("-")[0]
+                        }
+                      </Text>
+                      <Text style={{ fontSize: 10, marginRight: 10 }}>
+                        {
+                          moment(item.createdatetime)
+                            .format("DD-MMM")
+                            .split("-")[1]
+                        }
+                      </Text>
+                    </View>
                     <View
                       style={{
                         flex: 1,
@@ -716,7 +920,9 @@ export default class CustomerOrdersDetails extends Component {
                       <Text style={styles.headerText}>{item.customername}</Text>
                       <View style={{ flexDirection: "row" }}>
                         <Text style={styles.headerText}>
-                          {item.totalcost} Rs
+                        {Number(item.totalcost) -
+                              Number(item.partialpaymentamount)}{" "}
+                            Rs
                         </Text>
 
                         <MaterialCommunityIcons
@@ -746,9 +952,26 @@ export default class CustomerOrdersDetails extends Component {
                   <View
                     style={{
                       backgroundColor: "rgba(0,0,0, 0.1)",
-                      padding: 16
+                      padding: 12,
+                      flexDirection:'row'
                     }}
                   >
+                  <View>
+                      <Text style={{ fontSize: 10, marginRight: 10 }}>
+                        {
+                          moment(item.createdatetime)
+                            .format("DD-MMM")
+                            .split("-")[0]
+                        }
+                      </Text>
+                      <Text style={{ fontSize: 10, marginRight: 10 }}>
+                        {
+                          moment(item.createdatetime)
+                            .format("DD-MMM")
+                            .split("-")[1]
+                        }
+                      </Text>
+                    </View>
                     <View
                       style={{
                         flex: 1,
@@ -808,9 +1031,26 @@ export default class CustomerOrdersDetails extends Component {
                   <View
                     style={{
                       backgroundColor: "rgba(29, 231, 245, 0.1)	",
-                      padding: 16
+                      padding: 12,
+                      flexDirection: 'row'
                     }}
                   >
+                  <View>
+                      <Text style={{ fontSize: 10, marginRight: 10 }}>
+                        {
+                          moment(item.createdatetime)
+                            .format("DD-MMM")
+                            .split("-")[0]
+                        }
+                      </Text>
+                      <Text style={{ fontSize: 10, marginRight: 10 }}>
+                        {
+                          moment(item.createdatetime)
+                            .format("DD-MMM")
+                            .split("-")[1]
+                        }
+                      </Text>
+                    </View>
                     <View
                       style={{
                         flex: 1,
@@ -834,10 +1074,10 @@ export default class CustomerOrdersDetails extends Component {
                           size={20}
                         />
 
-                        {item.deliverystatus === "ofd" ? (
-                          <MaterialIcons
+                        {item.paymentstatus === "received" ? (
+                          <MaterialCommunityIcons
                             style={{ color: "#2979ff" }}
-                            name="directions-bike"
+                            name="check-all"
                             size={20}
                           />
                         ) : item.deliverystatus === "completed" ? (
@@ -846,10 +1086,10 @@ export default class CustomerOrdersDetails extends Component {
                             name="check"
                             size={20}
                           />
-                        ) : item.paymentstatus === "received" ? (
-                          <MaterialCommunityIcons
+                        ) : item.deliverystatus === "ofd" ? (
+                          <MaterialIcons
                             style={{ color: "#2979ff" }}
-                            name="check-all"
+                            name="directions-bike"
                             size={20}
                           />
                         ) : null}
@@ -865,6 +1105,23 @@ export default class CustomerOrdersDetails extends Component {
                 }
                 align="center"
               >
+               {item.partialpaymentamount !== 0 &&
+                  item.paymentstatus === "credit" ? (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        paddingLeft: 12,
+                        justifyContent: "space-between",
+                        paddingRight: 16,
+                        paddingTop:5,
+                        paddingBottom:5,
+                        backgroundColor: "rgba(245, 54, 29, 0.1)",
+                      }}
+                    >
+                      <Text>Partial Paid Amount</Text>
+                      <Text>+{item.partialpaymentamount} Rs</Text>
+                    </View>
+                  ) : null}
                 <View
                   style={{
                     height: this.state.layoutHeight,
@@ -939,7 +1196,11 @@ export default class CustomerOrdersDetails extends Component {
                         size={20}
                       />
 
-                      {item.deliverystatus === "packed" ? (
+                      {item.deliverystatus === "packed" ||
+                      item.deliverystatus === "ofd" ||
+                      item.deliverystatus === "completed" ||
+                      item.paymentstatus == "credit" ||
+                      item.paymentstatus === "received" ? (
                         <CheckBox
                           title="Packed"
                           center
@@ -983,49 +1244,94 @@ export default class CustomerOrdersDetails extends Component {
                           }}
                         />
                       )}
+                      {item.deliverystatus === "ofd" ||
+                      item.deliverystatus === "completed" ||
+                      item.paymentstatus == "credit" ||
+                      item.paymentstatus === "received" ? (
+                        <CheckBox
+                          title="Out for Delivery"
+                          center
+                          size={20}
+                          checkedIcon="dot-circle-o"
+                          uncheckedIcon="circle-o"
+                          onPress={() =>
+                            this.toggleCheckboxOFD(item, item.orderid + "ofd")
+                          }
+                          checked={true}
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      ) : (
+                        <CheckBox
+                          title="Out for Delivery"
+                          center
+                          size={20}
+                          checkedIcon="dot-circle-o"
+                          uncheckedIcon="circle-o"
+                          onPress={() =>
+                            this.toggleCheckboxOFD(item, item.orderid + "ofd")
+                          }
+                          checked={
+                            checkboxes &&
+                            checkboxes.includes(item.orderid + "ofd")
+                          }
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      )}
 
-                      <CheckBox
-                        title="Out for Delivery"
-                        center
-                        size={20}
-                        checkedIcon="dot-circle-o"
-                        uncheckedIcon="circle-o"
-                        onPress={() =>
-                          this.toggleCheckboxOFD(item, item.orderid + "ofd")
-                        }
-                        checked={
-                          checkboxes &&
-                          checkboxes.includes(item.orderid + "ofd")
-                        }
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
-
-                      <CheckBox
-                        title="Completed"
-                        center
-                        size={20}
-                        checkedIcon="dot-circle-o"
-                        uncheckedIcon="circle-o"
-                        onPress={() =>
-                          this.toggleCheckboxCompleted(
-                            item,
-                            item.orderid + "Completed"
-                          )
-                        }
-                        checked={
-                          checkboxes &&
-                          checkboxes.includes(item.orderid + "Completed")
-                        }
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
+                      {item.deliverystatus === "completed" ||
+                      item.paymentstatus == "credit" ||
+                      item.paymentstatus === "received" ? (
+                        <CheckBox
+                          title="Completed"
+                          center
+                          size={20}
+                          checkedIcon="dot-circle-o"
+                          uncheckedIcon="circle-o"
+                          onPress={() =>
+                            this.toggleCheckboxCompleted(
+                              item,
+                              item.orderid + "Completed"
+                            )
+                          }
+                          checked={true}
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      ) : (
+                        <CheckBox
+                          title="Completed"
+                          center
+                          size={20}
+                          checkedIcon="dot-circle-o"
+                          uncheckedIcon="circle-o"
+                          onPress={() =>
+                            this.toggleCheckboxCompleted(
+                              item,
+                              item.orderid + "Completed"
+                            )
+                          }
+                          checked={
+                            checkboxes &&
+                            checkboxes.includes(item.orderid + "Completed")
+                          }
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      )}
                     </View>
                   ) : null}
 
@@ -1040,61 +1346,117 @@ export default class CustomerOrdersDetails extends Component {
                       <Text style={{ marginTop: 12, fontSize: 18 }}>
                         {"\u20B9"}
                       </Text>
+                      {item.paymentstatus === "received" ? (
+                        <CheckBox
+                          title="Pending"
+                          center
+                          size={20}
+                          // onPress={() => this.toggleCheckboxPending(item, item.orderid+'Pending')}
+                          // checked={payments && payments.includes(item.orderid+'Pending')}
+                          checked={false}
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      ) : (
+                        <CheckBox
+                          title="Pending"
+                          center
+                          size={20}
+                          // onPress={() => this.toggleCheckboxPending(item, item.orderid+'Pending')}
+                          // checked={payments && payments.includes(item.orderid+'Pending')}
+                          checked={true}
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      )}
 
-                      <CheckBox
-                        title="Pending"
-                        center
-                        size={20}
-                        // onPress={() => this.toggleCheckboxPending(item, item.orderid+'Pending')}
-                        // checked={payments && payments.includes(item.orderid+'Pending')}
-                        checked={true}
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
+                      {item.paymentstatus === "credit" ? (
+                        <CheckBox
+                          title="Credit"
+                          center
+                          size={20}
+                          onPress={() =>
+                            this.toggleCheckboxCredit(
+                              item,
+                              item.orderid + "Credit"
+                            )
+                          }
+                          checked={true}
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      ) : (
+                        <CheckBox
+                          title="Credit"
+                          center
+                          size={20}
+                          onPress={() =>
+                            this.toggleCheckboxCredit(
+                              item,
+                              item.orderid + "Credit"
+                            )
+                          }
+                          checked={
+                            payments &&
+                            payments.includes(item.orderid + "Credit")
+                          }
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      )}
 
-                      <CheckBox
-                        title="Credit"
-                        center
-                        size={20}
-                        onPress={() =>
-                          this.toggleCheckboxCredit(
-                            item,
-                            item.orderid + "Credit"
-                          )
-                        }
-                        checked={
-                          payments && payments.includes(item.orderid + "Credit")
-                        }
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
-
-                      <CheckBox
-                        title="Received"
-                        center
-                        size={20}
-                        onPress={() =>
-                          this.toggleCheckboxReceived(
-                            item,
-                            item.orderid + "Received"
-                          )
-                        }
-                        checked={
-                          payments &&
-                          payments.includes(item.orderid + "Received")
-                        }
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
+                      {item.paymentstatus === "received" ? (
+                        <CheckBox
+                          title="Received"
+                          center
+                          size={20}
+                          onPress={() =>
+                            this.toggleCheckboxReceived(
+                              item,
+                              item.orderid + "Received"
+                            )
+                          }
+                          checked={true}
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      ) : (
+                        <CheckBox
+                          title="Received"
+                          center
+                          size={20}
+                          onPress={() =>
+                            this.toggleCheckboxReceived(
+                              item,
+                              item.orderid + "Received"
+                            )
+                          }
+                          checked={
+                            payments &&
+                            payments.includes(item.orderid + "Received")
+                          }
+                          textStyle={{ fontSize: 10 }}
+                          containerStyle={{
+                            backgroundColor: "transparent",
+                            borderColor: "#fff"
+                          }}
+                        />
+                      )}
                     </View>
                   ) : null}
                 </View>

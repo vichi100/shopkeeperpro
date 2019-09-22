@@ -14,6 +14,11 @@ import {
   Dimensions
 } from "react-native";
 import Collapsible from "react-native-collapsible";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { SimpleLineIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
+
 
 const width = Dimensions.get('window').width;
 
@@ -110,6 +115,7 @@ export default class HelpScreen extends Component {
                   !(activeSections && activeSections.includes(item.helpid))
                 }
                 align="center"
+                expandMultiple={false}
               >
                 <View
                   style={{
@@ -126,6 +132,16 @@ export default class HelpScreen extends Component {
                         marginBottom: 1
                       }}
                     >
+                      
+                      {item.title === 'What is emoji meaning?'?
+                      <View style={{flexDirection:'row', margin:10}}>
+                      {itemx.imgurl}
+                      
+                      <Text style={{marginLeft:10, marginRight:10, marginBottom:7, marginTop5:7,}}>{itemx.step}</Text>
+                      
+                      </View>
+                      : 
+                      <View>
                       <Text style={{marginLeft:10, marginRight:10, marginBottom:7, marginTop5:7,}}>{itemx.step}</Text>
                       <Image 
                     //   width={Dimensions.get('window').width} 
@@ -133,6 +149,7 @@ export default class HelpScreen extends Component {
                       style={styles.helpImage} 
                       resizeMode='contain'
                       />
+                      </View>}
                     </View>
                   ))}
                 </View>
@@ -172,6 +189,8 @@ const styles = StyleSheet.create({
     }
 })
 
+//1075 × 799
+
 const helpData = [
   {
     helpid: "help001",
@@ -183,24 +202,24 @@ const helpData = [
     },
     {
         step: "2. Now Customers list screen will open, touch on customer name for which you want to create order.",
-        imgurl: require('../assets/images/itemavailable.png'),
+        imgurl: require('../assets/images/customerlist.png'),
     },
     {
         step:'3. Now Customer details screen will open, touch on button "CREATE NEW ORDER" to create order.',
-        imgurl: require('../assets/images/itemavailable.png'),
+        imgurl: require('../assets/images/createorder.png'),
     },
     {
         step:'4. Now add item from list to bucket by touching "ADD" button. You can also search items by typing in "Search Here" place in search box at top.',
-        imgurl: require('../assets/images/itemavailable.png'),
+        imgurl: require('../assets/images/productlist.png'),
     },
     {
         step: "5. When finished adding items to bucket, touch bucket icon at top right hand corner.",
-        imgurl: require('../assets/images/itemavailable.png'),
+        imgurl: require('../assets/images/carticon.png'),
         
     },
     {
         step:'6. Now order basket will open, touch on "SHARE ORDER WITH CUSTOMER" button at bottom of screen.',
-        imgurl: require('../assets/images/itemavailable.png'),
+        imgurl: require('../assets/images/shopingcart.png'),
 
     }    
     ],
@@ -212,15 +231,15 @@ const helpData = [
     steps: [
         {
             step:'1. Touch on item and move finger at right side until "NA" appears, then move your finger from it.',
-            imgurl: require('../assets/images/itemavailable.png'),
+            imgurl: require('../assets/images/item.png'),
         },
         {
             step: "2. Now you will see that item has been crossed by a line.",
-            imgurl: require('../assets/images/itemavailable.png'),
+            imgurl: require('../assets/images/itemnotavailable.png'),
         },
         {
             step: "3. If you want to add this item again in order then put your finger on item and move to left, then move your finger from it.",
-            imgurl: require('../assets/images/itemavailable.png'),
+            imgurl: require('../assets/images/itemnotavailableX.png'),
         },
         {
             step: "4. Now you will see that cross line has been disappeared.",
@@ -237,13 +256,17 @@ const helpData = [
     title: "How to cancel the complete order?",
     steps: [
         {
-            step: "1. Put your finger on the order which you want to cancel for 2 sec.",
-            imgurl: require('../assets/images/itemavailable.png'),
+            step: "1. Put your finger on the order which you want to cancel for 5 sec.",
+            imgurl: require('../assets/images/cancelorder1.png'),
         },
         {
             step:'2. A popup will appear, touch on "YES" if you want to cancel the order.',
-            imgurl: require('../assets/images/itemavailable.png'),
-        }
+            imgurl: require('../assets/images/cancelorder2.png'),
+        },
+        {
+          step:'2. After canceling order it will look like below.',
+          imgurl: require('../assets/images/cancelorder3.png'), 
+      }
       
       
     ],
@@ -253,29 +276,63 @@ const helpData = [
     title: "What is emoji meaning?",
     steps: [
         {
-            step:'1. The "Bird" is for new order.',
-            imgurl: require('../assets/images/itemavailable.png'),
+            step:' The "Bird" is for new order.',
+            imgurl: <SimpleLineIcons
+            style={{ color: "#2979ff" , transform: [{ rotate: '360deg'}]}}
+            name="social-twitter"
+            
+            size={20}
+          />,
         },
         {
-            step:'2. The "Box" is for order is packed.',
-            imgurl: require('../assets/images/itemavailable.png'),
+            step:' The "Box" is for order is packed.',
+            imgurl: <MaterialCommunityIcons
+            style={{ color: "#2979ff" }}
+            name="package-variant"
+            size={20}
+          />,
         },
         {
-            step:'3. The "Bicycle" is for order is out for delivery.',
-            imgurl: require('../assets/images/itemavailable.png'),
+            step:' The "Bicycle" is for order is out for delivery.',
+            imgurl:  <MaterialIcons
+            style={{ color: "#2979ff" }}
+            name="directions-bike"
+            size={20}
+          />,
         },
         {
-            step: '4. The "Single Right" is for order is delivered.',
-            imgurl: require('../assets/images/itemavailable.png'),
+            step: ' The "Single Right" is for order is delivered.',
+            imgurl: <MaterialCommunityIcons
+            style={{ color: "#2979ff" }}
+            name="check"
+            size={20}
+          />,
         },
         {
-            step: '5. The "Double Right" is for order is delivered and payment is received.',
-            imgurl: require('../assets/images/itemavailable.png'),
+            step: ' The "Double Right" is for order is delivered and payment is received.',
+            imgurl: <MaterialCommunityIcons
+            style={{ color: "#2979ff" }}
+            name="check-all"
+            size={20}
+          />,
         },
         {
-            step:'6. The "Down Arrow" is for order is delivered but payment is not received or credit.',
-            imgurl: require('../assets/images/itemavailable.png'),
-        }
+            step:' The "Down Arrow" is for order is delivered but payment is not received or credit.',
+            imgurl: <Feather
+            style={{ color: "#424242" }}
+            name="arrow-down-left"
+            size={20}
+          />,
+        },
+
+        {
+          step:' The "Block" is for order has been canceled',
+          imgurl: <MaterialIcons
+          style={{ color: "#e91e63" }}
+          name="block"
+          size={20}
+        />,
+      }
       
       
       

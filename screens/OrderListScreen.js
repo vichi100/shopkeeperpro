@@ -15,7 +15,7 @@ import {
   TextInput,
   Dimensions,
   ActivityIndicator,
-  RefreshControl,
+  RefreshControl
 } from "react-native";
 //import basic react native components
 import { MaterialIcons } from "@expo/vector-icons";
@@ -29,7 +29,7 @@ import RadioGroup from "../radiobutton/RadioGroup";
 import { AsyncStorage } from "react-native";
 import { SERVER_URL } from "../Constants";
 import axios from "axios";
-
+import moment from "moment";
 import { CheckBox } from "react-native-elements";
 
 // import * as Animatable from "react-native-animatable";
@@ -40,6 +40,7 @@ import Dialog from "react-native-dialog";
 import SwipeItem from "../swipeable/SwipeItem";
 import SwipeButtonsContainer from "../swipeable/SwipeButtonsContainer";
 
+var shopid = null;
 var radiogroup_options = [
   { id: 0, label: "All" },
   { id: 1, label: "New" },
@@ -72,29 +73,38 @@ const leftButton = (
 );
 
 export default class OrderListScreen extends Component {
-  static navigationOptions = {
-    //To set the header image and title for the current Screen
-    title: "Orders",
-    headerBackTitle: null,
-    headerStyle: {
-      //backgroundColor: '#263238',
-      //Background Color of Navigation Bar
-    },
-    headerTitleStyle: {
-      justifyContent: "center",
-      color: "#757575",
-      textAlign: "left",
-      flex: 1
-    },
-    headerTintColor: "#757575"
-  };
-  //Main View defined under this Class
+
+  static navigationOptions = ({ navigation }) => {
+    //https://stackoverflow.com/questions/45596645/react-native-react-navigation-header-button-event
+    const { params = {} } = navigation.state;
+    return {
+      title: "Today Orders",
+      headerTitleStyle: {
+        justifyContent: "center",
+        color: "#757575",
+        textAlign: "left",
+        flex: 1
+      },
+        // headerStyle: {backgroundColor:'#3c3c3c'},
+        headerRight: <Feather
+        style={{ marginRight: 10, color: "#424242" }}
+        name={"arrow-down-left"}
+        size={25}
+        onPress={() => params.openCreditOrderList()} 
+      />
+      
+      
+      };
+};
+
+  
   constructor() {
     super();
     if (Platform.OS === "android") {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
     this.state = {
+      shopid: null,
       isRefreshing: false,
       isLoading: true,
       activeSections: [],
@@ -115,6 +125,7 @@ export default class OrderListScreen extends Component {
       update: [],
       collapsed: true,
       checked: false,
+      isFilterActive: false,
       filterData: [
         {
           label: "All",
@@ -149,12 +160,19 @@ export default class OrderListScreen extends Component {
         }
       ]
     };
-    
+  }
+
+  openCreditOrderList = () =>{
+    console.log('openCreditOrderList');
+    this.props.navigation.navigate("CreditOrderList");
   }
 
   async componentDidMount() {
+    this.props.navigation.setParams({ openCreditOrderList: this.openCreditOrderList });
+
     console.log("componentDidMount");
-    var shopid = await AsyncStorage.getItem("shopid");
+    this.props.navigation.addListener("didFocus", this.onScreenFocus);
+    shopid = await AsyncStorage.getItem("shopid");
     const orderQueryData = {
       shopid: shopid
     };
@@ -171,12 +189,12 @@ export default class OrderListScreen extends Component {
         data: orderQueryData
       })
         .then(result => {
-          console.log("Resp Data: " + JSON.stringify(result.data));
-          console.log('result.data.length: '+result.data.length);
+          // console.log("Resp Data: " + JSON.stringify(result.data));
+          // console.log('result.data.length: '+result.data.length);
           // console.log('result.data.ordersummary: '+ result.data.ordersummary.totalcostofneworder)
-          var count = Object.keys(result).length; 
-
-          if(count > 0){
+          var count = Object.keys(result.data).length;
+          console.log("count: " + count);
+          if (count > 0) {
             this.setState({
               listDataSource: result.data.orderdata,
               orderSummaryData: result.data.ordersummary,
@@ -192,18 +210,16 @@ export default class OrderListScreen extends Component {
               totalNumberOfCompletedOrder:
                 result.data.ordersummary.totalnumberofcompletedorder,
               arrayholder: result.data.orderdata,
-              isLoading:false,
+              isLoading: false
             });
-          }else{
-            console.log('I am in else')
-            this.setState({isLoading:false,}) 
+          } else {
+            console.log("I am in else");
+            this.setState({ isLoading: false });
           }
-          
-
         })
         .catch(error => {
           console.error(error);
-          this.setState({isLoading:false,}) 
+          this.setState({ isLoading: false });
         });
 
       // fetch(SERVER_URL + "/graphql", {
@@ -225,23 +241,30 @@ export default class OrderListScreen extends Component {
       //   });
     } catch (err) {
       console.log("Error in OrderListScreen: " + err);
-      this.setState({isLoading:false,}) 
+      this.setState({ isLoading: false });
     }
-    
   }
 
-  
+  // Called when our screen is focused
+  onScreenFocus = () => {
+    // Screen was focused, our on focus logic goes here
+    this.onRefresh();
+  };
+
   onRefresh = async () => {
-    this.setState({ isRefreshing: true }); // true isRefreshing flag for enable pull to refresh indicator
-    var shopid = await AsyncStorage.getItem("shopid");
+    this.setState({ isRefreshing: true, checkboxes: [], payments: [] }); // true isRefreshing flag for enable pull to refresh indicator
+    shopid = await AsyncStorage.getItem("shopid");
+    if (shopid !== null) {
+      this.setState({ shopid: shopid });
+    }
     const orderQueryData = {
       shopid: shopid
-    }; 
+    };
 
     axios({
       // Of course the url should be where your actual GraphQL server is.
       url: SERVER_URL + "/ordersByShopId",
-      method: "POST", 
+      method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json"
@@ -249,12 +272,12 @@ export default class OrderListScreen extends Component {
       data: orderQueryData
     })
       .then(result => {
-        console.log("Resp Data: " + JSON.stringify(result.data));
-        console.log('result.data.length: '+result.data.length);
+        // console.log("Resp Data: " + JSON.stringify(result.data));
+        // console.log('result.data.length: '+result.data.length);
         // console.log('result.data.ordersummary: '+ result.data.ordersummary.totalcostofneworder)
-        var count = Object.keys(result).length; 
+        var count = Object.keys(result.data).length;
 
-        if(count > 0){
+        if (count > 0) {
           this.setState({
             listDataSource: result.data.orderdata,
             orderSummaryData: result.data.ordersummary,
@@ -270,24 +293,18 @@ export default class OrderListScreen extends Component {
             totalNumberOfCompletedOrder:
               result.data.ordersummary.totalnumberofcompletedorder,
             arrayholder: result.data.orderdata,
-            isLoading:false,
-            isRefreshing: false,
+            isLoading: false,
+            isRefreshing: false
           });
-        }else{
-          console.log('I am in else')
-          this.setState({isLoading:false,}) 
+        } else {
+          console.log("I am in else");
+          this.setState({ isLoading: false });
         }
-        
-
       })
       .catch(error => {
         console.error(error);
-        this.setState({isLoading:false, isRefreshing: false,}) 
+        this.setState({ isLoading: false, isRefreshing: false });
       });
-
-
-
-
 
     // const url = `https://api.stackexchange.com/2.2/users?page=1&order=desc&sort=reputation&site=stackoverflow`;
     // axios.get(url)
@@ -298,11 +315,10 @@ export default class OrderListScreen extends Component {
     //   .catch(error => {
     //     this.setState({ isRefreshing: false, error: 'Something just went wrong' }) // false isRefreshing flag for disable pull to refresh
     //   });
-    
-  }
+  };
 
   updateOrderDetails = (orderItem, status) => {
-    console.log("orderItem: " + JSON.stringify(orderItem));
+    // console.log("orderItem: " + JSON.stringify(orderItem));
     var orderUpdateData = null;
     if (status === "packed" || status === "ofd" || status === "completed") {
       // update fileds: products, totalcost, deliverystatus, paymentstatus
@@ -430,6 +446,7 @@ if any of above exits for an order then it will be delivery status for that orde
     if (payments && payments.includes(id)) {
       const index = payments.indexOf(id);
       payments.splice(index, 1);
+      this.updateOrderDetails(item, "pending");
     } else {
       payments = payments.concat(id);
       this.updateOrderDetails(item, "received");
@@ -460,6 +477,7 @@ if any of above exits for an order then it will be delivery status for that orde
     if (payments && payments.includes(id)) {
       const index = payments.indexOf(id);
       payments.splice(index, 1);
+      this.updateOrderDetails(item, "pending");
     } else {
       payments = payments.concat(id);
       this.updateOrderDetails(item, "credit");
@@ -511,6 +529,7 @@ if any of above exits for an order then it will be delivery status for that orde
     }
     this.updateOrderDetails(item, "cancelorder");
     this.setState({ ordercancel });
+    this.onRefresh();
   };
 
   itemNotAvailbale = (itemOjb, productRow) => {
@@ -614,7 +633,8 @@ if any of above exits for an order then it will be delivery status for that orde
     this.setState({
       //setting the filtered newData on datasource
       //After setting the data it will automatically re-render the view
-      listDataSource: newData
+      listDataSource: newData,
+      isFilterActive: true
     });
   };
 
@@ -636,6 +656,10 @@ if any of above exits for an order then it will be delivery status for that orde
       listDataSource: newData,
       text: text
     });
+  };
+
+  registerShop = () => {
+    this.props.navigation.navigate("LoginScreen");
   };
 
   ListViewItemSeparator = () => {
@@ -660,40 +684,110 @@ if any of above exits for an order then it will be delivery status for that orde
     const payments = this.state.payments;
     const ordercancel = this.state.ordercancel;
 
-    console.log('this.state.listDataSource: '+ this.state.listDataSource);
-    
+    // console.log('this.state.listDataSource: '+ this.state.listDataSource);
+
     if (this.state.isLoading) {
-      console.log('isLoading: '+this.state.isLoading) 
+      console.log("isLoading: " + this.state.isLoading);
       //Loading View while data is loading
       return (
-        <View style={{ flex: 1, paddingTop: 20 }}>
-          <ActivityIndicator />
+        <View style={{ flex: 1, paddingTop: 20, justifyContent:'center', alignItems:'center' }}>
+          <ActivityIndicator 
+            color = '#ea80fc'
+            size = "large"
+
+          /> 
         </View>
       );
     }
 
-    if(this.state.listDataSource === null || this.state.listDataSource.length === 0){
+    if (shopid === null && this.state.listDataSource === null) {
       return (
-      <View style={{flex:1, justifyContent:'center', alignItems: 'center'}}>
-        <Text>No Order For Today</Text>
-        <View style={{flexDirection:'column', justifyContent:'center', alignItems: 'center'}}>
-          <Text>To Create New Order And Share Go To Customers</Text> 
-          <FontAwesome
-                          style={{
-                            color: "#2979ff" ,
-                            marginTop:10,
-                            marginLeft: 5,
-                            marginRight: 5
-                          }}
-                          name="hand-o-down"
-                          size={30}
-                        />
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <TouchableOpacity onPress={() => this.registerShop()}>
+            <View style={styles.buttonx}>
+              <Text
+                style={{
+                  color: "white",
+                  fontSize: 12,
+                  fontWeight: "500",
+                  fontFamily: "sans-serif"
+                }}
+              >
+                REGISTER NOW
+              </Text>
+            </View>
+          </TouchableOpacity>
+          <View
+            style={{
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center"
+            }}
+          >
+            <Text
+              style={{ fontFamily: "sans-serif", marginTop: 5, fontSize: 10 }}
+            >
+              OR TO CREATE NEW ORDERS AND SHARE GO TO CUSTOMERS
+            </Text>
 
+            <FontAwesome
+              style={{
+                color: "#2979ff",
+                marginTop: 10,
+                marginLeft: 5,
+                marginRight: 5
+              }}
+              name="hand-o-down"
+              size={30}
+            />
+          </View>
         </View>
-        
-      </View>
-      )
-    } 
+      );
+    }
+
+    if (
+      (this.state.listDataSource === null ||
+        this.state.listDataSource.length === 0) &&
+      !this.state.isFilterActive
+    ) {
+      return (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <Text>No Order For Today</Text>
+          <View
+            style={{
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center"
+            }}
+          >
+            <Text>To Create New Order And Share, Go To Customers</Text>
+            <FontAwesome
+              style={{
+                color: "#2979ff",
+                marginTop: 10,
+                marginLeft: 5,
+                marginRight: 5
+              }}
+              name="hand-o-down"
+              size={30}
+            />
+          </View>
+        </View>
+      );
+    }
+
+    // if((this.state.listDataSource === null || this.state.listDataSource.length === 0) && this.state.isFilterActive){
+    //   return (
+    //   <View style={{flex:1, justifyContent:'center', alignItems: 'center'}}>
+    //     <Text>Zero Result Found</Text>
+
+    //   </View>
+    //   )
+    // }
 
     // let selectedButton = this.state.filterData.find(e => e.selected == true);
     // selectedButton = selectedButton
@@ -797,149 +891,216 @@ if any of above exits for an order then it will be delivery status for that orde
             </View>
           ) : null}
         </View>
-
-        <FlatList
-          data={this.state.listDataSource}
-          refreshControl={
-            <RefreshControl
-              refreshing={this.state.isRefreshing}
-              onRefresh={this.onRefresh}
-            />
-          }
-          renderItem={({ item, index }) => (
-            <View style={styles.container}>
-              {/*Code for Single Collapsible Start*/}
-              {(item.deliverystatus === "packed" ||
-                item.deliverystatus === "new") &&
-              !(item.paymentstatus === "credit") &&
-              item.iscancel === "no" ? (
-                <TouchableOpacity
-                  onPress={() => this.toggleExpanded(item.orderid)}
-                  onLongPress={() => this.showCancelOrderDialog(item.orderid)}
-                  delayLongPress={1000}
-                >
-                  <View style={styles.header}>
-                    <View
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        justifyContent: "space-between"
-                      }}
-                    >
-                      <Text style={styles.headerText}>{item.customername}</Text>
-                      <View style={{ flexDirection: "row" }}>
-                        <Text style={styles.headerText}>
-                          {item.totalcost} Rs
-                        </Text>
-
-                        <MaterialCommunityIcons
-                          style={{
-                            color: "#ffffff",
-                            marginLeft: 5,
-                            marginRight: 5
-                          }}
-                          name="dots-vertical"
-                          size={20}
-                        />
-
-                        {item.deliverystatus === "new" ? (
-                          <SimpleLineIcons
-                            style={{ color: "#2979ff" , transform: [{ rotate: '360deg'}]}}
-                            name="social-twitter"
-                            
-                            size={20}
-                          />
-                        ) : item.deliverystatus === "packed" ? (
-                          <MaterialCommunityIcons
-                            style={{ color: "#2979ff" }}
-                            name="package-variant"
-                            size={20}
-                          />
-                        ) : item.deliverystatus === "ofd" ? (
-                          <MaterialIcons
-                            style={{ color: "#2979ff" }}
-                            name="directions-bike"
-                            size={20}
-                          />
-                        ) : null}
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ) : item.paymentstatus === "credit" ? (
-                <TouchableOpacity
-                  onPress={() => this.toggleExpanded(item.orderid)}
-                  onLongPress={() => this.showCancelOrderDialog(item.orderid)}
-                  delayLongPress={1000}
-                >
-                  <View
-                    style={{
-                      backgroundColor: "rgba(245, 54, 29, 0.198)	",
-                      padding: 16
-                    }}
+        {(this.state.listDataSource === null ||
+          this.state.listDataSource.length === 0) &&
+        this.state.isFilterActive ? (
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <Text>Zero Result Found</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={this.state.listDataSource}
+            refreshControl={
+              <RefreshControl
+                refreshing={this.state.isRefreshing}
+                onRefresh={this.onRefresh}
+              />
+            }
+            renderItem={({ item, index }) => (
+              <View style={styles.container}>
+                {/*Code for Single Collapsible Start*/}
+                {(item.deliverystatus === "packed" ||
+                  item.deliverystatus === "new") &&
+                !(
+                  item.paymentstatus === "credit" ||
+                  item.paymentstatus === "received"
+                ) &&
+                item.iscancel === "no" ? (
+                  <TouchableOpacity
+                    onPress={() => this.toggleExpanded(item.orderid)}
+                    onLongPress={() => this.showCancelOrderDialog(item.orderid)}
+                    delayLongPress={1000}
                   >
                     <View
                       style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        justifyContent: "space-between"
+                        backgroundColor: "rgba(142, 213, 87, 0.3)",
+                        padding: 12,
+                        flexDirection: "row"
                       }}
                     >
-                      <Text style={styles.headerText}>{item.customername}</Text>
-                      <View style={{ flexDirection: "row" }}>
-                        <Text style={styles.headerText}>
-                          {item.totalcost} Rs
+                      <View>
+                        <Text style={{ fontSize: 10, marginRight: 10 }}>
+                          {
+                            moment(item.createdatetime)
+                              .format("DD-MMM")
+                              .split("-")[0]
+                          }
                         </Text>
-
-                        <MaterialCommunityIcons
-                          style={{
-                            color: "#ffffff",
-                            marginLeft: 5,
-                            marginRight: 5
-                          }}
-                          name="dots-vertical"
-                          size={20}
-                        />
-                        <Feather
-                          style={{ color: "#424242" }}
-                          name="arrow-down-left"
-                          size={20}
-                        />
+                        <Text style={{ fontSize: 10, marginRight: 10 }}>
+                          {
+                            moment(item.createdatetime)
+                              .format("DD-MMM")
+                              .split("-")[1]
+                          }
+                        </Text>
                       </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ) : item.iscancel === "yes" ? (
-                <TouchableOpacity
-                  onPress={() => this.toggleExpanded(item.orderid)}
-                  // onLongPress={() => this.showCancelOrderDialog(item.orderid)}
-                  // delayLongPress ={1000}
-                >
-                  <View
-                    style={{
-                      backgroundColor: "rgba(0,0,0, 0.1)",
-                      padding: 16
-                    }}
-                  >
-                    <View
-                      style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        justifyContent: "space-between"
-                      }}
-                    >
-                      <Text
+                      <View
                         style={{
-                          fontSize: 16,
-                          fontWeight: "500",
-                          fontFamily: "sans-serif",
-                          textDecorationLine: "line-through",
-                          textDecorationStyle: "solid"
+                          flex: 1,
+                          flexDirection: "row",
+                          justifyContent: "space-between"
                         }}
                       >
-                        {item.customername}
-                      </Text>
-                      <View style={{ flexDirection: "row" }}>
+                        <Text style={styles.headerText}>
+                          {item.customername}
+                        </Text>
+                        <View style={{ flexDirection: "row" }}>
+                          <Text style={styles.headerText}>
+                            {item.totalcost} Rs
+                          </Text>
+
+                          <MaterialCommunityIcons
+                            style={{
+                              color: "#ffffff",
+                              marginLeft: 5,
+                              marginRight: 5
+                            }}
+                            name="dots-vertical"
+                            size={20}
+                          />
+
+                          {item.deliverystatus === "new" ? (
+                            <SimpleLineIcons
+                              style={{
+                                color: "#2979ff",
+                                transform: [{ rotate: "360deg" }]
+                              }}
+                              name="social-twitter"
+                              size={20}
+                            />
+                          ) : item.deliverystatus === "packed" ? (
+                            <MaterialCommunityIcons
+                              style={{ color: "#2979ff" }}
+                              name="package-variant"
+                              size={20}
+                            />
+                          ) : item.deliverystatus === "ofd" ? (
+                            <MaterialIcons
+                              style={{ color: "#2979ff" }}
+                              name="directions-bike"
+                              size={20}
+                            />
+                          ) : null}
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ) : item.paymentstatus === "credit" ? (
+                  <TouchableOpacity
+                    onPress={() => this.toggleExpanded(item.orderid)}
+                    onLongPress={() => this.showCancelOrderDialog(item.orderid)}
+                    delayLongPress={1000}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: "rgba(245, 54, 29, 0.198)	",
+                        // paddingLeft:16,
+                        // paddingRight:16,
+                        // paddingTop:5,
+                        padding: 12,
+                        flexDirection: "row"
+                      }}
+                    >
+                      <View>
+                        <Text style={{ fontSize: 10, marginRight: 10 }}>
+                          {
+                            moment(item.createdatetime)
+                              .format("DD-MMM")
+                              .split("-")[0]
+                          }
+                        </Text>
+                        <Text style={{ fontSize: 10, marginRight: 10 }}>
+                          {
+                            moment(item.createdatetime)
+                              .format("DD-MMM")
+                              .split("-")[1]
+                          }
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flex: 1,
+                          flexDirection: "row",
+                          justifyContent: "space-between"
+                          // paddingBottom:7
+                        }}
+                      >
+                        <Text style={styles.headerText}>
+                          {item.customername}
+                        </Text>
+                        <View style={{ flexDirection: "row" }}>
+                          <Text style={styles.headerText}>
+                            {Number(item.totalcost) -
+                              Number(item.partialpaymentamount)}{" "}
+                            Rs
+                          </Text>
+
+                          <MaterialCommunityIcons
+                            style={{
+                              color: "#ffffff",
+                              marginLeft: 5,
+                              marginRight: 5
+                            }}
+                            name="dots-vertical"
+                            size={20}
+                          />
+                          <Feather
+                            style={{ color: "#424242" }}
+                            name="arrow-down-left"
+                            size={20}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ) : item.iscancel === "yes" ? (
+                  <TouchableOpacity
+                    onPress={() => this.toggleExpanded(item.orderid)}
+                    // onLongPress={() => this.showCancelOrderDialog(item.orderid)}
+                    // delayLongPress ={1000}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: "rgba(0,0,0, 0.1)",
+                        padding: 12,
+                        flexDirection: "row"
+                      }}
+                    >
+                      <View>
+                        <Text style={{ fontSize: 10, marginRight: 10 }}>
+                          {
+                            moment(item.createdatetime)
+                              .format("DD-MMM")
+                              .split("-")[0]
+                          }
+                        </Text>
+                        <Text style={{ fontSize: 10, marginRight: 10 }}>
+                          {
+                            moment(item.createdatetime)
+                              .format("DD-MMM")
+                              .split("-")[1]
+                          }
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flex: 1,
+                          flexDirection: "row",
+                          justifyContent: "space-between"
+                        }}
+                      >
                         <Text
                           style={{
                             fontSize: 16,
@@ -949,415 +1110,587 @@ if any of above exits for an order then it will be delivery status for that orde
                             textDecorationStyle: "solid"
                           }}
                         >
-                          {item.totalcost} Rs
+                          {item.customername}
                         </Text>
+                        <View style={{ flexDirection: "row" }}>
+                          <Text
+                            style={{
+                              fontSize: 16,
+                              fontWeight: "500",
+                              fontFamily: "sans-serif",
+                              textDecorationLine: "line-through",
+                              textDecorationStyle: "solid"
+                            }}
+                          >
+                            {item.totalcost} Rs
+                          </Text>
 
-                        <MaterialCommunityIcons
-                          style={{
-                            color: "#ffffff",
-                            marginLeft: 5,
-                            marginRight: 5
-                          }}
-                          name="dots-vertical"
-                          size={20}
-                        />
+                          <MaterialCommunityIcons
+                            style={{
+                              color: "#ffffff",
+                              marginLeft: 5,
+                              marginRight: 5
+                            }}
+                            name="dots-vertical"
+                            size={20}
+                          />
 
-                        <MaterialIcons
-                          style={{ color: "#e91e63" }}
-                          name="block"
-                          size={20}
-                        />
+                          <MaterialIcons
+                            style={{ color: "#e91e63" }}
+                            name="block"
+                            size={20}
+                          />
+                        </View>
                       </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => this.toggleExpanded(item.orderid)}
-                  onLongPress={() => this.showCancelOrderDialog(item.orderid)}
-                  delayLongPress={1000}
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => this.toggleExpanded(item.orderid)}
+                    onLongPress={() => this.showCancelOrderDialog(item.orderid)}
+                    delayLongPress={1000}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: "rgba(29, 231, 245, 0.1)	",
+                        padding: 12,
+                        flexDirection: "row"
+                      }}
+                    >
+                      <View>
+                        <Text style={{ fontSize: 10, marginRight: 10 }}>
+                          {
+                            moment(item.createdatetime)
+                              .format("DD-MMM")
+                              .split("-")[0]
+                          }
+                        </Text>
+                        <Text style={{ fontSize: 10, marginRight: 10 }}>
+                          {
+                            moment(item.createdatetime)
+                              .format("DD-MMM")
+                              .split("-")[1]
+                          }
+                        </Text>
+                      </View>
+                      <View
+                        style={{
+                          flex: 1,
+                          flexDirection: "row",
+                          justifyContent: "space-between"
+                        }}
+                      >
+                        <Text style={styles.headerText}>
+                          {item.customername}
+                        </Text>
+                        <View style={{ flexDirection: "row" }}>
+                          <Text style={styles.headerText}>
+                            {item.totalcost} Rs
+                          </Text>
+
+                          <MaterialCommunityIcons
+                            style={{
+                              color: "#ffffff",
+                              marginLeft: 5,
+                              marginRight: 5
+                            }}
+                            name="dots-vertical"
+                            size={20}
+                          />
+
+                          {item.paymentstatus === "received" ? (
+                            <MaterialCommunityIcons
+                              style={{ color: "#2979ff" }}
+                              name="check-all"
+                              size={20}
+                            />
+                          ) : item.deliverystatus === "completed" ? (
+                            <MaterialCommunityIcons
+                              style={{ color: "#2979ff" }}
+                              name="check"
+                              size={20}
+                            />
+                          ) : item.deliverystatus === "ofd" ? (
+                            <MaterialIcons
+                              style={{ color: "#2979ff" }}
+                              name="directions-bike"
+                              size={20}
+                            />
+                          ) : null}
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                )}
+                {/*Content of Single Collapsible*/}
+                <Collapsible
+                  collapsed={
+                    !(activeSections && activeSections.includes(item.orderid))
+                  }
+                  align="center"
                 >
+                  {item.partialpaymentamount !== 0 &&
+                  item.paymentstatus === "credit" ? (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        paddingLeft: 12,
+                        justifyContent: "space-between",
+                        paddingRight: 16,
+                        paddingTop: 5,
+                        paddingBottom: 5,
+                        backgroundColor: "rgba(245, 54, 29, 0.1)"
+                      }}
+                    >
+                      <Text>Partial Paid Amount</Text>
+                      <Text>+{item.partialpaymentamount} Rs</Text>
+                    </View>
+                  ) : null}
                   <View
                     style={{
-                      backgroundColor: "rgba(29, 231, 245, 0.1)	",
-                      padding: 16
+                      height: this.state.layoutHeight,
+                      overflow: "hidden"
                     }}
                   >
                     <View
                       style={{
-                        flex: 1,
-                        flexDirection: "row",
-                        justifyContent: "space-between"
+                        backgroundColor: "rgba(128,128,0, 0.1)",
+                        marginTop: 0.5,
+                        padding: 10
                       }}
                     >
-                      <Text style={styles.headerText}>{item.customername}</Text>
                       <View style={{ flexDirection: "row" }}>
-                        <Text style={styles.headerText}>
-                          {item.totalcost} Rs
-                        </Text>
-
-                        <MaterialCommunityIcons
-                          style={{
-                            color: "#ffffff",
-                            marginLeft: 5,
-                            marginRight: 5
-                          }}
-                          name="dots-vertical"
+                        <MaterialIcons
+                          style={{ marginRight: 10 }}
+                          name="phone"
                           size={20}
                         />
-
-                        {item.deliverystatus === "ofd" ? (
-                          <MaterialIcons
-                            style={{ color: "#2979ff" }}
-                            name="directions-bike"
-                            size={20}
-                          />
-                        ) : item.deliverystatus === "completed" ? (
-                          <MaterialCommunityIcons
-                            style={{ color: "#2979ff" }}
-                            name="check"
-                            size={20}
-                          />
-                        ) : item.paymentstatus === "received" ? (
-                          <MaterialCommunityIcons
-                            style={{ color: "#2979ff" }}
-                            name="check-all"
-                            size={20}
-                          />
-                        ) : null}
+                        <Text style={styles.contentText}>
+                          {item.customermobile}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: "row" }}>
+                        <AntDesign
+                          style={{ marginRight: 10 }}
+                          name="home"
+                          size={20}
+                        />
+                        <Text style={styles.contentText}>
+                          {item.deliveryaddress}
+                        </Text>
                       </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              )}
-              {/*Content of Single Collapsible*/}
-              <Collapsible
-                collapsed={
-                  !(activeSections && activeSections.includes(item.orderid))
-                }
-                align="center"
-              >
-                <View
-                  style={{
-                    height: this.state.layoutHeight,
-                    overflow: "hidden"
-                  }}
-                >
-                  <View
-                    style={{
-                      backgroundColor: "rgba(128,128,0, 0.1)",
-                      marginTop: 0.5,
-                      padding: 10
-                    }}
-                  >
-                    <View style={{ flexDirection: "row" }}>
-                      <MaterialIcons
-                        style={{ marginRight: 10 }}
-                        name="phone"
-                        size={20}
-                      />
-                      <Text style={styles.contentText}>
-                        {item.customermobile}
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: "row" }}>
-                      <AntDesign
-                        style={{ marginRight: 10 }}
-                        name="home"
-                        size={20}
-                      />
-                      <Text style={styles.contentText}>
-                        {item.deliveryaddress}
-                      </Text>
-                    </View>
-                  </View>
-                  {item.products.map((itemx, key) => (
-                    <SwipeItem
-                      style={styles.button}
-                      swipeContainerStyle={styles.swipeContentContainerStyle}
-                      leftButtons={leftButton}
-                      onLeftButtonsShowed={() =>
-                        this.itemNotAvailbale(item, itemx)
-                      }
-                      // onMovedToOrigin = {() => this.itemIsAvailbale(item, itemx)}
-                      onMovedToOrigin={() => this.itemIsAvailbale(item, itemx)}
-                      // onRightButtonsShowed = {() => this.itemIsAvailbale(item, itemx)}
-                    >
+                    {item.products.map((itemx, key) => (
+                      <SwipeItem
+                        style={styles.button}
+                        swipeContainerStyle={styles.swipeContentContainerStyle}
+                        leftButtons={leftButton}
+                        onLeftButtonsShowed={() =>
+                          this.itemNotAvailbale(item, itemx)
+                        }
+                        // onMovedToOrigin = {() => this.itemIsAvailbale(item, itemx)}
+                        onMovedToOrigin={() =>
+                          this.itemIsAvailbale(item, itemx)
+                        }
+                        // onRightButtonsShowed = {() => this.itemIsAvailbale(item, itemx)}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            flex: 1,
+                            backgroundColor: "#eeeeee",
+                            marginBottom: 1
+                          }}
+                        >
+                          {itemx.available === "NA" ? (
+                            <Text style={styles.strikeText}>
+                              {key + 1}. {itemx.productname}
+                            </Text>
+                          ) : (
+                            <Text style={styles.text}>
+                              {key + 1}. {itemx.productname}
+                            </Text>
+                          )}
+
+                          {itemx.available === "NA" ? (
+                            <Text style={styles.strikeText}>
+                              {itemx.qty}qty
+                            </Text>
+                          ) : (
+                            <Text style={styles.text}>{itemx.qty}qty</Text>
+                          )}
+
+                          {itemx.available === "NA" ? (
+                            <Text style={styles.strikeText}>
+                              {itemx.weight}g
+                            </Text>
+                          ) : (
+                            <Text style={styles.text}>{itemx.weight}g</Text>
+                          )}
+
+                          {itemx.available === "NA" ? (
+                            <Text style={styles.strikeText}>
+                              {itemx.price}Rs
+                            </Text>
+                          ) : (
+                            <Text style={styles.text}>{itemx.price}Rs</Text>
+                          )}
+                        </View>
+                      </SwipeItem>
+                    ))}
+
+                    {item.iscancel === "no" ? (
                       <View
                         style={{
                           flexDirection: "row",
-                          flex: 1,
-                          backgroundColor: "#eeeeee",
-                          marginBottom: 1
+                          justifyContent: "space-evenly"
                         }}
                       >
-                        {itemx.available === "NA" ? (
-                          <Text style={styles.strikeText}>
-                            {key + 1}. {itemx.productname}
-                          </Text>
+                        <MaterialIcons
+                          style={{
+                            marginRight: 5,
+                            marginLeft: 15,
+                            marginTop: 15
+                          }}
+                          name="directions-bike"
+                          size={20}
+                        />
+
+                        {item.deliverystatus === "packed" ||
+                        item.deliverystatus === "ofd" ||
+                        item.deliverystatus === "completed" ||
+                        item.paymentstatus == "credit" ||
+                        item.paymentstatus === "received" ? (
+                          <CheckBox
+                            title="Packed"
+                            center
+                            size={20}
+                            checkedIcon="dot-circle-o"
+                            uncheckedIcon="circle-o"
+                            onPress={() =>
+                              this.toggleCheckboxPacked(
+                                item,
+                                item.orderid + "Packed"
+                              )
+                            }
+                            checked={true}
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
                         ) : (
-                          <Text style={styles.text}>
-                            {key + 1}. {itemx.productname}
-                          </Text>
+                          <CheckBox
+                            title="Packed"
+                            center
+                            size={20}
+                            checkedIcon="dot-circle-o"
+                            uncheckedIcon="circle-o"
+                            onPress={() =>
+                              this.toggleCheckboxPacked(
+                                item,
+                                item.orderid + "Packed"
+                              )
+                            }
+                            checked={
+                              checkboxes &&
+                              checkboxes.includes(item.orderid + "Packed")
+                            }
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
+                        )}
+                        {item.deliverystatus === "ofd" ||
+                        item.deliverystatus === "completed" ||
+                        item.paymentstatus == "credit" ||
+                        item.paymentstatus === "received" ? (
+                          <CheckBox
+                            title="Out for Delivery"
+                            center
+                            size={20}
+                            checkedIcon="dot-circle-o"
+                            uncheckedIcon="circle-o"
+                            checked={true}
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
+                        ) : (
+                          <CheckBox
+                            title="Out for Delivery"
+                            center
+                            size={20}
+                            checkedIcon="dot-circle-o"
+                            uncheckedIcon="circle-o"
+                            onPress={() =>
+                              this.toggleCheckboxOFD(item, item.orderid + "ofd")
+                            }
+                            checked={
+                              checkboxes &&
+                              checkboxes.includes(item.orderid + "ofd")
+                            }
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
                         )}
 
-                        {itemx.available === "NA" ? (
-                          <Text style={styles.strikeText}>{itemx.qty}qty</Text>
+                        {item.deliverystatus === "completed" ||
+                        item.paymentstatus == "credit" ||
+                        item.paymentstatus === "received" ? (
+                          <CheckBox
+                            title="Completed"
+                            center
+                            size={20}
+                            checkedIcon="dot-circle-o"
+                            uncheckedIcon="circle-o"
+                            checked={true}
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
                         ) : (
-                          <Text style={styles.text}>{itemx.qty}qty</Text>
-                        )}
-
-                        {itemx.available === "NA" ? (
-                          <Text style={styles.strikeText}>{itemx.weight}g</Text>
-                        ) : (
-                          <Text style={styles.text}>{itemx.weight}g</Text>
-                        )}
-
-                        {itemx.available === "NA" ? (
-                          <Text style={styles.strikeText}>{itemx.price}Rs</Text>
-                        ) : (
-                          <Text style={styles.text}>{itemx.price}Rs</Text>
+                          <CheckBox
+                            title="Completed"
+                            center
+                            size={20}
+                            checkedIcon="dot-circle-o"
+                            uncheckedIcon="circle-o"
+                            onPress={() =>
+                              this.toggleCheckboxCompleted(
+                                item,
+                                item.orderid + "Completed"
+                              )
+                            }
+                            checked={
+                              checkboxes &&
+                              checkboxes.includes(item.orderid + "Completed")
+                            }
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
                         )}
                       </View>
-                    </SwipeItem>
-                  ))}
+                    ) : null}
 
-                  {item.iscancel === "no" ? (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-evenly"
-                      }}
-                    >
-                      <MaterialIcons
+                    {item.iscancel === "no" ? (
+                      <View
                         style={{
-                          marginRight: 5,
-                          marginLeft: 15,
-                          marginTop: 15
+                          flexDirection: "row",
+                          justifyContent: "space-evenly",
+                          flexWrap: "wrap"
                         }}
-                        name="directions-bike"
-                        size={20}
-                      />
-
-                      {item.deliverystatus === "packed" ? (
-                        <CheckBox
-                          title="Packed"
-                          center
-                          size={20}
-                          checkedIcon="dot-circle-o"
-                          uncheckedIcon="circle-o"
-                          onPress={() =>
-                            this.toggleCheckboxPacked(
-                              item,
-                              item.orderid + "Packed"
-                            )
-                          }
-                          checked={true}
-                          textStyle={{ fontSize: 10 }}
-                          containerStyle={{
-                            backgroundColor: "transparent",
-                            borderColor: "#fff"
-                          }}
-                        />
-                      ) : (
-                        <CheckBox
-                          title="Packed"
-                          center
-                          size={20}
-                          checkedIcon="dot-circle-o"
-                          uncheckedIcon="circle-o"
-                          onPress={() =>
-                            this.toggleCheckboxPacked(
-                              item,
-                              item.orderid + "Packed"
-                            )
-                          }
-                          checked={
-                            checkboxes &&
-                            checkboxes.includes(item.orderid + "Packed")
-                          }
-                          textStyle={{ fontSize: 10 }}
-                          containerStyle={{
-                            backgroundColor: "transparent",
-                            borderColor: "#fff"
-                          }}
-                        />
-                      )}
-
-                      <CheckBox
-                        title="Out for Delivery"
-                        center
-                        size={20}
-                        checkedIcon="dot-circle-o"
-                        uncheckedIcon="circle-o"
-                        onPress={() =>
-                          this.toggleCheckboxOFD(item, item.orderid + "ofd")
-                        }
-                        checked={
-                          checkboxes &&
-                          checkboxes.includes(item.orderid + "ofd")
-                        }
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
-
-                      <CheckBox
-                        title="Completed"
-                        center
-                        size={20}
-                        checkedIcon="dot-circle-o"
-                        uncheckedIcon="circle-o"
-                        onPress={() =>
-                          this.toggleCheckboxCompleted(
-                            item,
-                            item.orderid + "Completed"
+                      >
+                        <Text style={{ marginTop: 12, fontSize: 18 }}>
+                          {"\u20B9"}
+                        </Text>
+                        {item.paymentstatus === "received" ? (
+                          (<CheckBox
+                            title="Pending"
+                            center
+                            size={20}
+                            // onPress={() => this.toggleCheckboxPending(item, item.orderid+'Pending')}
+                            // checked={payments && payments.includes(item.orderid+'Pending')}
+                            checked={false}
+                            disabled = {true}
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
                           )
-                        }
-                        checked={
-                          checkboxes &&
-                          checkboxes.includes(item.orderid + "Completed")
-                        }
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
-                    </View>
-                  ) : null}
+                        ) : (
+                          <CheckBox
+                            title="Pending"
+                            center
+                            size={20}
+                            // onPress={() => this.toggleCheckboxPending(item, item.orderid+'Pending')}
+                            // checked={payments && payments.includes(item.orderid+'Pending')}
+                            checked={true}
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
+                        )}
 
-                  {item.iscancel === "no" ? (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-evenly",
-                        flexWrap: "wrap"
-                      }}
-                    >
-                      <Text style={{ marginTop: 12, fontSize: 18 }}>
-                        {"\u20B9"}
-                      </Text>
+                        {item.paymentstatus === "credit" ? (
+                          <CheckBox
+                            title="Credit"
+                            center
+                            size={20}
+                            checked={true}
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
+                        ) : 
+                        item.paymentstatus === "received"?(
+                          <CheckBox
+                            title="Credit"
+                            center
+                            size={20}
+                            
+                            checked={
+                              false
+                            }
+                            disabled={true}
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
+                        ):
+                        (
+                          <CheckBox
+                            title="Credit"
+                            center
+                            size={20}
+                            onPress={() =>
+                              this.toggleCheckboxCredit(
+                                item,
+                                item.orderid + "Credit"
+                              )
+                            }
+                            checked={
+                              payments &&
+                              payments.includes(item.orderid + "Credit")
+                            }
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
+                        )}
 
-                      <CheckBox
-                        title="Pending"
-                        center
-                        size={20}
-                        // onPress={() => this.toggleCheckboxPending(item, item.orderid+'Pending')}
-                        // checked={payments && payments.includes(item.orderid+'Pending')}
-                        checked={true}
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
+                        {item.paymentstatus === "received" ? (
+                          <CheckBox
+                            title="Received"
+                            center
+                            size={20}
+                            checked={true}
+                            disabled={true}
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
+                        ) : (
+                          <CheckBox
+                            title="Received"
+                            center
+                            size={20}
+                            onPress={() =>
+                              this.toggleCheckboxReceived(
+                                item,
+                                item.orderid + "Received"
+                              )
+                            }
+                            checked={
+                              payments &&
+                              payments.includes(item.orderid + "Received")
+                            }
+                            textStyle={{ fontSize: 10 }}
+                            containerStyle={{
+                              backgroundColor: "transparent",
+                              borderColor: "#fff"
+                            }}
+                          />
+                        )
+                        
+                        }
 
-                      <CheckBox
-                        title="Credit"
-                        center
-                        size={20}
-                        onPress={() =>
-                          this.toggleCheckboxCredit(
-                            item,
-                            item.orderid + "Credit"
-                          )
-                        }
-                        checked={
-                          payments && payments.includes(item.orderid + "Credit")
-                        }
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
-
-                      <CheckBox
-                        title="Received"
-                        center
-                        size={20}
-                        onPress={() =>
-                          this.toggleCheckboxReceived(
-                            item,
-                            item.orderid + "Received"
-                          )
-                        }
-                        checked={
-                          payments &&
-                          payments.includes(item.orderid + "Received")
-                        }
-                        textStyle={{ fontSize: 10 }}
-                        containerStyle={{
-                          backgroundColor: "transparent",
-                          borderColor: "#fff"
-                        }}
-                      />
-                    </View>
-                  ) : null}
-                </View>
-              </Collapsible>
-              {/*Code for Single Collapsible Ends*/}
-              <View>
-                <Dialog.Container
-                  visible={ordercancel && ordercancel.includes(item.orderid)}
-                  buttonSeparatorStyle={{ justifyContent: "space-between" }}
-                >
-                  <Dialog.Title
-                    style={{
-                      color: "red",
-                      justifyContent: "center",
-                      textAlign: "center"
-                    }}
+                        
+                      </View>
+                    ) : null
+                    
+                    
+                    
+                    
+                    
+                    }
+                  </View>
+                </Collapsible>
+                {/*Code for Single Collapsible Ends*/}
+                <View>
+                  <Dialog.Container
+                    visible={ordercancel && ordercancel.includes(item.orderid)}
+                    buttonSeparatorStyle={{ justifyContent: "space-between" }}
                   >
-                    Cancel Order !
-                  </Dialog.Title>
-                  <Dialog.Description>
-                    <Text
+                    <Dialog.Title
                       style={{
-                        fontWeight: "500",
+                        color: "red",
                         justifyContent: "center",
                         textAlign: "center"
                       }}
                     >
-                      {item.customername}
-                    </Text>
-                    <Text
-                      style={{
-                        paddingLeft: 50,
-                        justifyContent: "center",
-                        textAlign: "center",
-                        alignItems: "center"
-                      }}
-                    >
-                      {" "}
-                      {item.totalcost} Rs.
-                    </Text>
-                    {"\n \n"}Do you want to cancel this order? You cannot undo
-                    this action.
-                  </Dialog.Description>
-                  <Dialog.Button
-                    label="Yes"
-                    style={{ fontFamily: "sans-serif", marginLeft: 50 }}
-                    onPress={() => this.handleYesCancel(item, item.orderid)}
-                  />
-                  <Dialog.Button
-                    label="No"
-                    style={{ fontFamily: "sans-serif" }}
-                    onPress={() => this.handleDontCancel(item.orderid)}
-                  />
-                </Dialog.Container>
+                      Cancel Order !
+                    </Dialog.Title>
+                    <Dialog.Description>
+                      <Text
+                        style={{
+                          fontWeight: "500",
+                          justifyContent: "center",
+                          textAlign: "center"
+                        }}
+                      >
+                        {item.customername}
+                      </Text>
+                      <Text
+                        style={{
+                          paddingLeft: 50,
+                          justifyContent: "center",
+                          textAlign: "center",
+                          alignItems: "center"
+                        }}
+                      >
+                        {" "}
+                        {item.totalcost} Rs.
+                      </Text>
+                      {"\n \n"}Do you want to cancel this order? You cannot undo
+                      this action.
+                    </Dialog.Description>
+                    <Dialog.Button
+                      label="Yes"
+                      style={{ fontFamily: "sans-serif", marginLeft: 50 }}
+                      onPress={() => this.handleYesCancel(item, item.orderid)}
+                    />
+                    <Dialog.Button
+                      label="No"
+                      style={{ fontFamily: "sans-serif" }}
+                      onPress={() => this.handleDontCancel(item.orderid)}
+                    />
+                  </Dialog.Container>
+                </View>
               </View>
-            </View>
-          )}
-          enableEmptySections={true}
-          extraData={this.state}
-          style={{ marginTop: 1 }}
-          keyExtractor={(item, index) => index}
-          ItemSeparatorComponent={this.ListViewItemSeparator}
-        />
+            )}
+            enableEmptySections={true}
+            extraData={this.state}
+            style={{ marginTop: 1 }}
+            keyExtractor={(item, index) => index}
+            ItemSeparatorComponent={this.ListViewItemSeparator}
+          />
+        )}
       </View>
     );
   }
@@ -1366,7 +1699,7 @@ if any of above exits for an order then it will be delivery status for that orde
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 1
+    // paddingTop: 0
     //backgroundColor: "#F5FCFF"
   },
   rightSwipeItem: {
@@ -1541,5 +1874,29 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     borderColor: "#009688",
     backgroundColor: "#FFFFFF"
+  },
+  buttonx: {
+    width: 325,
+    borderColor: "#42a5f5",
+    borderWidth: 1,
+    height: 50,
+    padding: 10,
+    // borderRadius: 24,
+    marginTop: 20,
+    backgroundColor: "#42a5f5",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#42a5f5",
+    shadowOffset: {
+      width: 0,
+      height: 4
+    },
+    shadowRadius: 5,
+    shadowOpacity: 0.8
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 12
   }
 });

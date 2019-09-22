@@ -10,7 +10,7 @@ import {
   Platform,
   ImageBackground,
   TouchableOpacity,
-  Button,
+  ActivityIndicator
 } from "react-native";
 
 //import TopBar from './topBar';
@@ -18,12 +18,14 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Foundation } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
+
 //import OfficeLocationDisplay from "../screens/gmap/OfficeLocationDisplay";
 //import { OpenMapDirections } from "../screens/gmap/GMapDirectionDrive";
 import Dialog from "react-native-dialog";
 import { AsyncStorage } from "react-native";
 // import SnackBar from 'react-native-snackbar-component'
-
+//
 var signin = false;
 
 export default class Profile extends Component {
@@ -58,18 +60,30 @@ export default class Profile extends Component {
     super(props);
 
     this.state = {
+      isLoading: true,
       mobile: null,
       name: null,
       photoUrl: null,
       dialogVisible: false,
       newMobile: null,
-      userid: null
+      userid: null,
+      alternatemobile: null,
     };
   }
 
   componentDidMount() {
     this._retrieveData();
+    this.props.navigation.addListener('didFocus', this.onScreenFocus)
+
   }
+
+  onScreenFocus = () => {
+    // Screen was focused, our on focus logic goes here
+    // this.reloadHomePage()
+    console.log("profile screen")
+    this._retrieveData();
+  }
+
 
   _callShowDirections = () => {
     //"latlong":19.074103, 72.869604
@@ -89,28 +103,36 @@ export default class Profile extends Component {
   //fetch data from AsyncStorage
   _retrieveData = async () => {
     if (!this.state.dialogVisible) {
-      console.log("in profile _retrieveData");
+      console.log("in profile retrieveData");
       try {
-        var email = await AsyncStorage.getItem("email");
-        var mobilex = await AsyncStorage.getItem("mobile");
-        console.log("get mobile" + mobilex);
-        var name = await AsyncStorage.getItem("name");
-        var photoUrl = await AsyncStorage.getItem("photoUrl");
-        var useid = await AsyncStorage.getItem("customerId");
-        console.log("get name" + name);
-        if (mobilex !== null && email != null && useid != null) {
+        var shopname = await AsyncStorage.getItem("shopname");
+        var shopmobile = await AsyncStorage.getItem("shopmobile");
+        var shopaddress = await AsyncStorage.getItem("shopaddress");
+        var shopid = await AsyncStorage.getItem("shopid");
+        var alternatemobile = await AsyncStorage.getItem("alternatemobile");
+        
+        console.log("get shopmobile: " + shopmobile);
+        console.log("get shopname: " + shopname);
+        console.log("get shopid: " + shopid);
+        if (shopmobile !== null && shopid != null && shopname != null) {
           // We have data!!
           signin = true;
-          console.log(mobilex);
           this.setState({
-            mobile: mobilex,
-            name: name,
-            photoUrl: photoUrl
+            mobile: shopmobile,
+            name: shopname,
+            shopaddress: shopaddress,
+            alternatemobile: alternatemobile,
+            // isLoading: false,
           });
         }
+
+        this.setState({isLoading: false})
       } catch (error) {
         // Error retrieving data
         console.log("Error retrieving data " + error);
+        this.setState({
+          isLoading: false,
+        });
       }
     }
   };
@@ -156,18 +178,42 @@ export default class Profile extends Component {
     }
   };
 
-  login = () => {
+  login = async() => {
     console.log("in login function");
-    this.props.navigation.navigate("LoginScreen", {
-      bookingData: null,
-      me: "profile"
-    });
+    var shopname = await AsyncStorage.getItem("shopname");
+    var shopmobile = await AsyncStorage.getItem("shopmobile");
+    var shopid = await AsyncStorage.getItem("shopid");
+    if(shopid === null || shopmobile === null || shopname === null){
+      this.props.navigation.navigate("LoginScreen");
+    }else{
+      this.props.navigation.navigate("UpdateLogin");
+    }
+    
   };
+
+  openHelp = () => {
+    console.log('help')
+    this.props.navigation.navigate("HelpScreen");
+  }
 
   render() {
     setTimeout(() => {}, 200);
 
     console.log("in profile");
+
+    if (this.state.isLoading) {
+      console.log('isLoading: '+this.state.isLoading) 
+      //Loading View while data is loading
+      return (
+        <View style={{ flex: 1, paddingTop: 20, justifyContent:'center', alignItems:'center' }}>
+          <ActivityIndicator 
+            color = '#ea80fc'
+            size = "large"
+ 
+          />
+        </View>
+      );
+    }
 
     if (signin == true) {
       return (
@@ -180,24 +226,35 @@ export default class Profile extends Component {
           >
             <View style={styles.headerContainer}>
               <View style={styles.headerColumn}>
-                <Image
-                  style={styles.userImage}
-                  source={{
-                    // uri: "http://199.180.133.121:3030"+'/images/club/tipplingstreetjuhu/tipplingstreetjuhu.jpg',
-                    uri: this.state.photoUrl
-                  }}
-                />
-                <MaterialCommunityIcons
-                  onPress={() => this.editMobile()}
-                  style={styles.heartwhite}
-                  name="account-edit"
-                  size={30}
-                />
-
-                <Text style={styles.userNameText}>{this.state.name}</Text>
-                <Text style={styles.userMobileText}>
-                  +91 {this.state.mobile}
-                </Text>
+                
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      marginTop: 50,
+                      marginBottom: 50
+                    }}
+                  >
+                    <Image
+                      style={styles.image}
+                      source={require("../assets/images/icologo.png")}
+                      resizeMode={"contain"}
+                    />
+                    <View>
+                      <Text
+                        style={{
+                          justifyContent: "center",
+                          alignItems: "center",
+                          marginTop: 20,
+                          fontSize: 15,
+                          fontWeight: "500",
+                          fontFamily: "sans-serif"
+                        }}
+                      >
+                        ShopKeeper Pro
+                      </Text>
+                      
+                    </View>
+                  </View>
               </View>
             </View>
 
@@ -229,14 +286,15 @@ export default class Profile extends Component {
               ]}
             >
               <View style={{ flexDirection: "row", margin: 10 }}>
-                <MaterialCommunityIcons
-                  style={styles.icons}
-                  name="untappd"
-                  size={20}
-                />
+                <Entypo style={styles.icons} name="shop" size={20} />
                 <Text style={{ fontSize: 14, color: "#4caf50" }}>
-                  Our Philosophy
+                  {this.state.name}
                 </Text>
+                <View style={{position: 'absolute', top: 0, right: 0}}>
+                <TouchableOpacity onPress={() => this.login()}>
+                <MaterialCommunityIcons style={styles.icons} name="account-edit" size={20} />
+                </TouchableOpacity>
+                </View> 
               </View>
 
               <View
@@ -271,7 +329,7 @@ export default class Profile extends Component {
                   style={{
                     flex: 1,
                     justifyContent: "space-between",
-                    flexDirection: "row",
+
                     marginTop: 5,
                     marginBottom: 5,
                     marginLeft: 10,
@@ -279,12 +337,108 @@ export default class Profile extends Component {
                   }}
                 >
                   <Text style={{ color: "#9e9e9e" }}>
-                    EMPOWERING LOCAL STORES WITH POWER OF ONLINE ORDERING {"\n"}
-                    {"\n"}You should be able to receive online order from the
-                    customers. You will be able to track sales, manage credit
-                    effectively.
+                    Mobile: {this.state.mobile}
+                  </Text>
+                  <Text style={{ color: "#9e9e9e" }}>
+                    Alternate Mobile: {this.state.alternatemobile}
+                  </Text>
+                  <Text style={{ color: "#9e9e9e" }}>
+                    Address: {this.state.shopaddress}
                   </Text>
                 </View>
+              </View>
+            </View>
+
+            <View
+              //outer GuestList
+              style={[
+                styles.cardView,
+                {
+                  backgroundColor: this.props.backgroundColor,
+                  marginTop: this.props.marginTop,
+                  width: this.props.width,
+                  height: this.props.height,
+                  //margin: 5,
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: this.props.shadowColor,
+                      shadowOpacity: this.props.shadowOpacity,
+                      shadowRadius: this.props.shadowRadius,
+                      shadowOffset: {
+                        height: -1,
+                        width: 0
+                      }
+                    },
+                    android: {
+                      elevation: this.props.elevation
+                    }
+                  })
+                }
+              ]}
+            >
+              <View style={{ flexDirection: "row", margin: 10 }}>
+                <MaterialCommunityIcons
+                  style={{
+                    color: "#0091ea"
+                  }}
+                  name="help-rhombus-outline"
+                  size={20}
+                />
+                <Text
+                  style={{ fontSize: 14, color: "#4caf50", marginLeft: 10 }}
+                >
+                  Help
+                </Text>
+              </View>
+
+              <View
+                //Girls Section
+
+                style={[
+                  styles.cardView,
+                  {
+                    // backgroundColor: this.props.backgroundColor,
+                    backgroundColor: '#e3f2fd',
+                    marginTop: this.props.marginTop,
+                    width: this.props.width,
+                    height: this.props.height,
+                    margin: 5,
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: this.props.shadowColor,
+                        shadowOpacity: this.props.shadowOpacity,
+                        shadowRadius: this.props.shadowRadius,
+                        shadowOffset: {
+                          height: -1,
+                          width: 0
+                        }
+                      },
+                      android: {
+                        elevation: this.props.elevation
+                      }
+                    })
+                  }
+                ]}
+              >
+              <TouchableOpacity onPress={() => this.openHelp()}>
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "space-between",
+                    flexDirection: "row",
+                    marginTop: 5,
+                    marginBottom: 5,
+                    marginLeft: 10,
+                    marginRight: 10,
+                    
+                  }}
+                >
+                  <Text style={{ color: "#9e9e9e" }}>
+                    Tap here for help regarding create new order, cancel order or
+                    any other help
+                  </Text>
+                </View>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -607,9 +761,9 @@ export default class Profile extends Component {
                       >
                         ShopKeeper Pro
                       </Text>
-                      <View style={styles.button}> 
-                <Text style={styles.buttonText}>Log in</Text>
-              </View>
+                      <View style={styles.button}>
+                        <Text style={styles.buttonText}>Log in</Text>
+                      </View>
                       {/* <Button
                         //onPress={this.onPressLearnMore}
                         title="Log in"
@@ -710,6 +864,100 @@ export default class Profile extends Component {
                 </View>
               </View>
             </View>
+
+
+            <View
+              //outer GuestList
+              style={[
+                styles.cardView,
+                {
+                  backgroundColor: this.props.backgroundColor,
+                  marginTop: this.props.marginTop,
+                  width: this.props.width,
+                  height: this.props.height,
+                  //margin: 5,
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: this.props.shadowColor,
+                      shadowOpacity: this.props.shadowOpacity,
+                      shadowRadius: this.props.shadowRadius,
+                      shadowOffset: {
+                        height: -1,
+                        width: 0
+                      }
+                    },
+                    android: {
+                      elevation: this.props.elevation
+                    }
+                  })
+                }
+              ]}
+            >
+              <View style={{ flexDirection: "row", margin: 10 }}>
+                <MaterialCommunityIcons
+                  style={{
+                    color: "#0091ea"
+                  }}
+                  name="help-rhombus-outline"
+                  size={20}
+                />
+                <Text
+                  style={{ fontSize: 14, color: "#4caf50", marginLeft: 10 }}
+                >
+                  Help
+                </Text>
+              </View>
+
+              <View
+                //Girls Section
+
+                style={[
+                  styles.cardView,
+                  {
+                    backgroundColor: this.props.backgroundColor,
+                    marginTop: this.props.marginTop,
+                    width: this.props.width,
+                    height: this.props.height,
+                    margin: 5,
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: this.props.shadowColor,
+                        shadowOpacity: this.props.shadowOpacity,
+                        shadowRadius: this.props.shadowRadius,
+                        shadowOffset: {
+                          height: -1,
+                          width: 0
+                        }
+                      },
+                      android: {
+                        elevation: this.props.elevation
+                      }
+                    })
+                  }
+                ]}
+              >
+              <TouchableOpacity onPress={() => this.openHelp()}>
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "space-between",
+                    flexDirection: "row",
+                    marginTop: 5,
+                    marginBottom: 5,
+                    marginLeft: 10,
+                    marginRight: 10
+                  }}
+                >
+                  <Text style={{ color: "#9e9e9e" }}>
+                    Tap here to help regarding create new order, cancel order or
+                    any other help
+                  </Text>
+                </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+          
 
             <View
               //outer GuestList
@@ -1129,11 +1377,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 10,
     padding: 10,
-    borderRadius: 24,   
+    borderRadius: 24,
     marginTop: 5,
     marginLeft: 20,
     backgroundColor: "#eeeeee",
-    //flexDirection: "column", 
+    //flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#eeeeee",
@@ -1147,5 +1395,5 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#9e9e9e",
     fontSize: 12
-  },
+  }
 });

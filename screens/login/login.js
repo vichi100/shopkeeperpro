@@ -15,6 +15,22 @@ const BLUE = "#428AF8";
 const LIGHT_GRAY = "#D3D3D3";
 
 export default class Login extends Component {
+
+  static navigationOptions = {
+    //To set the header image and title for the current Screen
+    title: "Login",
+    headerBackTitle: null,
+    headerStyle: {
+      //backgroundColor: "#263238"
+      //Background Color of Navigation Bar
+    },
+    headerTitleStyle: {
+      justifyContent: "center",
+      color: "#757575",
+      textAlign: "left",
+      flex: 1
+    }
+  };
   constructor(props) {
     super(props);
     this.state = {

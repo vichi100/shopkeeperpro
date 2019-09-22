@@ -170,15 +170,7 @@ class Products extends Component {
               <TouchableOpacity
                 onPress={() => this.props.onPress(products.item)}
                 style={{
-                  //height: 30,
-                  //backgroundColor: "#ffc400",
-                  //width:160,
-                  //borderRadius:10,
-                  //   margin: 10,
-
                   marginLeft: 10
-                  //   marginRight:50,
-                  // marginTop :20
                 }}
               >
                 <Entypo

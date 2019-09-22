@@ -11,10 +11,12 @@ import LinksScreen from '../screens/LinksScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import CustomerListScreen from '../screens/CustomerListScreen';
 import OrderListScreen from '../screens/OrderListScreen';
+import LoadOrderListScreen from "../screens/LoadOrderListScreen";
 import CreateOrder from '../screens/CreateOrder';
 
 import { Fontisto } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 
 import CustomerOrdersDetails from '../screens/CustomerOrdersDetails';
 import ShoppingCartIcon from "../Containers/ShoppingCartIcon";
@@ -27,6 +29,13 @@ import AddCustomerAddress  from '../screens/AddCustomerAddress';
 import Profile from '../screens/profile';
 import SalesChart from '../purechart/SalesChart';
 import HelpScreen from '../screens/HelpScreen';
+import ShopRegistrationWaring from '../screens/login/ShopRegistrationWaring';
+import UpdateLogin from '../screens/login/updateLogin';
+import UpdateOTPScreen from '../screens/login/UpdateOTPScreen';
+import UpdateShopRegistration from '../screens/login/UpdateShopRegistration';
+import CreditOrderList from '../screens/CreditOrderList';  
+import Icon from '@expo/vector-icons/FontAwesome';
+
 
 // export default createAppContainer(
 //   createSwitchNavigator({
@@ -45,7 +54,7 @@ const config = Platform.select({
 
 const HomeStack = createStackNavigator(
   {
-    Home: OrderListScreen, //HelpScreen,//
+    Home:  OrderListScreen, //LoadOrderListScreen, //OrderListScreen, // Profile, //HelpScreen,// CreditOrderList
   },
   config
 );
@@ -62,6 +71,7 @@ HomeStack.navigationOptions = {
       }
     />
   ),
+  
 };
 
 HomeStack.path = '';
@@ -115,11 +125,33 @@ SettingsStack.navigationOptions = {
   ),
 };
 
-SettingsStack.path = '';
+const CreditOrderStack = createStackNavigator( 
+  {
+    CreditOrderList: CreditOrderList,
+  },
+  config
+);
+
+CreditOrderStack.navigationOptions = {
+  tabBarLabel: 'Credit',
+  tabBarIcon: ({focused}) => (
+    <Feather
+        focused={focused}
+        name="arrow-down-left"
+        // color={tintColor}
+        size={24}
+    />
+  ),
+};
+CreditOrderStack.path = '';
+
+
+
 
 const tabNavigator = createBottomTabNavigator({
   HomeStack,
   LinksStack,
+  // CreditOrderStack,
   chartStack,
   SettingsStack,
 });
@@ -134,23 +166,94 @@ const AppStack = createStackNavigator({
     headerMode: 'none',
     headerBackTitle: null,
     headerLeft: null,
+    
     navigationOptions: {
       header: null  
     }
   },
-  LoginScreen:LoginScreen,
-  ShopRegistration: ShopRegistration,
-  OTPScreen: OTPScreen,
+  LoginScreen:{
+    screen: LoginScreen,
+    navigationOptions: {
+      headerRight: null
+    }
+  },
+  ShopRegistration: {
+    screen: ShopRegistration,
+    navigationOptions: {
+      headerRight: null
+    }
+  },
+  OTPScreen:  { 
+    screen: OTPScreen,
+    navigationOptions: {
+      headerRight: null
+    }
+  },
   CustomerOrdersDetails: CustomerOrdersDetails,
   CreateOrder: CreateOrder,
   Grocery: Grocery,
   Cart: CartScreen,
   ShoppingCartIcon:ShoppingCartIcon,
-  AddCustomerAddress: AddCustomerAddress,
+  AddCustomerAddress: { 
+    screen: AddCustomerAddress,
+    navigationOptions: {
+      headerRight: null
+    }
+  },
   Profile:Profile,
-  
+  HelpScreen:{
+    screen: HelpScreen,
+    navigationOptions: {
+      headerRight: null
+    }
+  },
+  LoadOrderListScreen:{
+    screen: LoadOrderListScreen,
+    navigationOptions: {
+      headerRight: null
+    }
+  },
+  ShopRegistrationWaring:{
+    screen: ShopRegistrationWaring,
+    navigationOptions: {
+      headerRight: null
+    }
+
+  },
+  UpdateLogin:{
+    screen: UpdateLogin,
+    navigationOptions: {
+      headerRight: null
+    }
+
+  },
+
+  UpdateOTPScreen:{
+    screen: UpdateOTPScreen,
+    navigationOptions: {
+      headerRight: null
+    }
+
+  },
+
+  UpdateShopRegistration:{
+    screen: UpdateShopRegistration,
+    navigationOptions: {
+      headerRight: null
+    }
+
+  },
+
+  CreditOrderList: {
+    screen: CreditOrderList,
+    navigationOptions: {
+      headerRight: null
+    }
+
+  },
   
 },
+
 {
   defaultNavigationOptions:{
       // headerTitle:"Shopping App",

@@ -471,7 +471,7 @@ class PieChart extends React.Component {
   }
 }
 
-PieChart.defaultProps = {
+PieChart.defaultProps = { 
   data: [{value: 10}, {value: 20}, {value: 40}, {value: 100}],
   colors: ['#009ef2', '#ff4d7d', '#00c4c3', '#ffd12f', '#e7e9ed'],
   size: 200
@@ -483,8 +483,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  tooltipTitle: {fontSize: 18, fontWeight: 'bold'},
-  tooltipValue: {fontSize: 15, marginTop: 5}
+  tooltipTitle: {fontSize: 18, fontWeight: 'bold', fontFamily: "sans-serif",},
+  tooltipValue: {fontSize: 15, marginTop: 5, fontFamily: "sans-serif",}
 })
 
 export default PieChart

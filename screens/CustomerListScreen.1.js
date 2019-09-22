@@ -351,8 +351,10 @@ export default class CustomerListScreen extends Component {
     if (this.state.isLoading) {
       //Loading View while data is loading
       return (
-        <View style={{ flex: 1, paddingTop: 20 }}>
-          <ActivityIndicator />
+        <View style={{ flex: 1, paddingTop: 20, justifyContent:'center', alignItems:'center' }}>
+          <ActivityIndicator 
+            color = '#ea80fc'
+          />
         </View>
       );
     }

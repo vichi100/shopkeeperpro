@@ -20,7 +20,7 @@ import { AsyncStorage } from "react-native";
 export default class AddCustomerAddress extends Component {
   static navigationOptions = {
     //To set the header image and title for the current Screen
-    title: "Add Address",
+    title: "Update Address",
     headerBackTitle: null,
     headerStyle: {
       //backgroundColor: '#263238',
@@ -38,112 +38,119 @@ export default class AddCustomerAddress extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      shopmobile: null,
-      shopname: null,
-      shopaddress: null,
-      alternatemobile: null,
+      customermobile: null,
+      customername: null,
+      customeraddress: null,
+      customeraddresslineone: null,
+      customeraddresslinetwo: null,
       landmark: null,
       city: null,
-      shopnameError: null,
-      shopaddressError: null,
-      cityError: null
+      cityError: null,
+      customeraddresslineoneerror: null,
     };
   }
 
-  registerShop = shopmobile => {
-    const shopaddress = this.state.shopaddress + " , " + this.state.landmark;
-    //console.log('shopaddress '+shopaddress)
-    const shopname = this.state.shopname;
-    const city = this.state.city;
-    const alternatemobile = this.state.alternatemobile;
 
-    if (shopname == null || shopname.trim() === "") {
-      this.setState(() => ({ shopnameError: "Shop name required." }));
+  // _storeShopDetails = async (
+  //   shopname,
+  //   shopaddress,
+  //   shopmobile,
+  //   alternatemobile,
+  //   city
+  // ) => {
+  //   await AsyncStorage.setItem("shopname", shopname);
+  //   await AsyncStorage.setItem("shopaddress", shopaddress);
+  //   await AsyncStorage.setItem("shopmobile", shopmobile);
+  //   await AsyncStorage.setItem("alternatemobile", alternatemobile);
+  //   await AsyncStorage.setItem("shopcity", city);
+  // };
+
+  addCustomerAddress = (customerid, customermobile) =>{
+    console.log('customeraddresslineone: '+this.state.customeraddresslineone)
+    console.log('city: '+this.state.city)
+
+    if (this.state.customeraddresslineone == null || this.state.customeraddresslineone.trim() === "") {
+      this.setState(() => ({ customeraddresslineoneerror: "Customer address required."}));
       return;
     } else {
-      this.setState(() => ({ shopnameError: null }));
+      this.setState(() => ({ customeraddresslineoneerror: null}));
     }
 
-    if (
-      this.state.shopaddress == null ||
-      this.state.shopaddress.trim() === ""
-    ) {
-      this.setState(() => ({ shopaddressError: "Shop address required." }));
+    if (this.state.city == null || this.state.city.trim() === "") {
+      this.setState(() => ({ cityError: "City name required."}));
       return;
     } else {
-      this.setState(() => ({ shopaddressError: null }));
+      this.setState(() => ({ cityError: null}));
     }
 
-    if (city == null || city.trim() === "") {
-      this.setState(() => ({ cityError: "City required." }));
-      return;
-    } else {
-      this.setState(() => ({ cityError: null }));
-    }
-
-    const requestBody = {
-      query: `
-            mutation{
-               createShop(shopInput: {city: "${city}", shopname:"${shopname}", shopaddress:"${shopaddress}", shopmobile:"${shopmobile}", alternatemobile:"${alternatemobile}"}){
-                shopid
-               }
-            }
-            `
+    var customerAddress = ''
+    const addAddressQueryData = {
+      customerid: customerid,
+      customermobile: customermobile,
+      customeraddresslineone: this.state.customeraddresslineone,
+      customeraddresslinetwo: this.state.customeraddresslinetwo,
+      landmark: this.state.landmark,
+      city: this.state.city
     };
-    console.log("registerShop");
+
     axios({
       // Of course the url should be where your actual GraphQL server is.
-      url: SERVER_URL + "/graphql",
+      url: SERVER_URL + "/addOrUpdateCustomerAddress",
       method: "POST",
-      data: requestBody
-    }).then(result => {
-      console.log("Resp Data: " + JSON.stringify(result.data));
-      // store shop details in local
-      this._storeShopDetails(
-        shopname,
-        shopaddress,
-        shopmobile,
-        alternatemobile,
-        city
-      );
-      this.props.navigation.navigate("MainTabNavigator", {
-        shopmobile: "shopmobile"
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      data: addAddressQueryData
+    })
+      .then(result => {
+        // console.log("Resp Data: " + JSON.stringify(result.data));
+        // console.log('result.data.length: '+result.data.length);
+        // console.log('result.data.ordersummary: '+ result.data.ordersummary.totalcostofneworder)
+        var count = Object.keys(result.data).length; 
+        console.log('count: '+count)
+        if(count > 0){
+          this.setState({
+            
+            isLoading:false,
+          });
+        }else{
+          console.log('I am in else')
+          this.setState({isLoading:false,}) 
+        }
+        
+        this.props.navigation.navigate("CustomerOrdersDetails", {
+          from: 'addcustomeraddress',
+          customeraddresslineone: this.state.customeraddresslineone,
+          customeraddresslinetwo: this.state.customeraddresslinetwo,
+          landmark: this.state.landmark,
+          city: this.state.city,
+              });  
+
+      })
+      .catch(error => {
+        console.error(error);
+        this.setState({isLoading:false,}) 
       });
-    });
 
-    ///http://localhost:3000/graphql
-    // return fetch('http://192.168.43.64:3000/graphql', {
-    //   method: 'POST',
-    //   body: JSON.stringify(requestBody),
-    //   headers:{
-    //     'Content-Type': 'application/json'
-    //   }
-    // }).then(res => {
-    //   console.log(JSON.stringify(res))
-    // }).catch(err =>{
-    //   console.log(err)
-    // })
-  };
-
-  _storeShopDetails = async (
-    shopname,
-    shopaddress,
-    shopmobile,
-    alternatemobile,
-    city
-  ) => {
-    await AsyncStorage.setItem("shopname", shopname);
-    await AsyncStorage.setItem("shopaddress", shopaddress);
-    await AsyncStorage.setItem("shopmobile", shopmobile);
-    await AsyncStorage.setItem("alternatemobile", alternatemobile);
-    await AsyncStorage.setItem("shopcity", city);
-  };
+  }
 
   render() {
     const { navigation } = this.props;
+    const customerid = navigation.getParam("customerid");
     const customerMobile = navigation.getParam("customerMobile");
     const customerName = navigation.getParam("customerName");
-
+    // var from = navigation.getParam("customerorderdetails");
+    var customeraddresslineonex = navigation.getParam("customeraddresslineone");
+    var customeraddresslinetwox= navigation.getParam("customeraddresslinetwo");
+    if(customeraddresslinetwox === null){
+      customeraddresslinetwox=''
+    }
+    var landmarkx= navigation.getParam("landmark");
+    if(landmarkx === null){
+      landmarkx = ''
+    }
+    var cityx= navigation.getParam("city");
     return (
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -166,66 +173,51 @@ export default class AddCustomerAddress extends Component {
                 label="Customer Name"
                 fontSize={14}
                 value={customerName}
-                onChangeText={city => this.setState({ city: city })}
+                // onChangeText={city => this.setState({ customername: customerName })}
                 returnKeyType="next"
                 autoCorrect={false}
                 editable={false}
                 enablesReturnKeyAutomatically={true}
-                error={this.state.cityError}
               />
               <TextField
                 label="Mobile"
                 fontSize={14}
                 value={customerMobile}
-                onChangeText={city => this.setState({ city: city })}
+                // onChangeText={city => this.setState({ customermobile: customerMobile })}
                 returnKeyType="next"
                 autoCorrect={false}
                 editable={false}
                 enablesReturnKeyAutomatically={true}
-                error={this.state.cityError}
               />
               <TextField
                 label="House No, Building Name"
                 fontSize={14}
                 multiline={true}
-                //value={phone}
-                onChangeText={shopname => this.setState({ shopname: shopname })}
+                // value={customeraddresslineonex}
+                onChangeText={customeraddresslineone => this.setState({ customeraddresslineone: customeraddresslineone })}
                 returnKeyType="next"
                 autoCorrect={false}
                 enablesReturnKeyAutomatically={true}
-                error={this.state.shopnameError}
+                error={this.state.customeraddresslineoneerror}
               />
-              <TextField
+              <TextField 
                 label="Road Name, Area, Colony"
                 fontSize={14}
                 multiline={true}
-                //value={phone}
-                onChangeText={alternatemobile =>
-                  this.setState({ alternatemobile: alternatemobile })
+                // value={customeraddresslinetwox}
+                onChangeText={customeraddresslinetwo =>
+                  this.setState({ customeraddresslinetwo: customeraddresslinetwo })
                 }
                 returnKeyType="next"
                 autoCorrect={false}
                 enablesReturnKeyAutomatically={true}
-                error={this.state.shopnameError}
-                keyboardType="number-pad"
-              />
-              <TextField
-                label="City"
-                fontSize={14}
-                //value={phone}
-                onChangeText={shopaddress =>
-                  this.setState({ shopaddress: shopaddress })
-                }
-                returnKeyType="next"
-                autoCorrect={false}
-                enablesReturnKeyAutomatically={true}
-                error={this.state.shopaddressError}
-              />
+              /> 
+              
 
               <TextField
                 label="Landmark"
                 fontSize={14}
-                //value={phone}
+                // value={landmarkx}
                 onChangeText={landmark => this.setState({ landmark: landmark })}
                 returnKeyType="next"
                 autoCorrect={false}
@@ -235,7 +227,7 @@ export default class AddCustomerAddress extends Component {
               <TextField
                 label="City"
                 fontSize={14}
-                //value={phone}
+                // value={cityx}
                 onChangeText={city => this.setState({ city: city })}
                 returnKeyType="next"
                 autoCorrect={false}
@@ -243,9 +235,9 @@ export default class AddCustomerAddress extends Component {
                 error={this.state.cityError}
               />
 
-              <TouchableOpacity onPress={() => this.registerShop(shopmobile)}>
+              <TouchableOpacity onPress={() => this.addCustomerAddress(customerid, customerMobile)}>
                 <View style={styles.button}>
-                  <Text style={styles.buttonText}>ADD ADDRESS</Text>
+                  <Text style={styles.buttonText}>UPDATE</Text>
                 </View>
               </TouchableOpacity>
             </View>
