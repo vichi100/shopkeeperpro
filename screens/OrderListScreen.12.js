@@ -3,7 +3,6 @@ import React, { Component } from "react";
 //import react in our project
 import {
   LayoutAnimation,
-  Slider,
   StyleSheet,
   View,
   Text,
@@ -16,20 +15,14 @@ import {
   TextInput,
   Dimensions,
   ActivityIndicator,
-  RefreshControl,
-  
+  RefreshControl
 } from "react-native";
-import Modal from "react-native-modal";
-
-
 //import basic react native components
 import { MaterialIcons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
-
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import { Feather } from "@expo/vector-icons";
 import RadioGroup from "../radiobutton/RadioGroup";
@@ -46,14 +39,6 @@ import Dialog from "react-native-dialog";
 
 import SwipeItem from "../swipeable/SwipeItem";
 import SwipeButtonsContainer from "../swipeable/SwipeButtonsContainer";
-
-import { Asset } from "expo-asset";
-import { Audio } from "expo-av";
-import * as Font from "expo-font";
-import * as Permissions from "expo-permissions";
-
-// https://github.com/reggie3/react-native-audio-player-recorder-no-linking
-import Player from "../expoPlayer/Player";
 
 var shopid = null;
 var radiogroup_options = [
@@ -88,6 +73,7 @@ const leftButton = (
 );
 
 export default class OrderListScreen extends Component {
+
   static navigationOptions = ({ navigation }) => {
     //https://stackoverflow.com/questions/45596645/react-native-react-navigation-header-button-event
     const { params = {} } = navigation.state;
@@ -99,32 +85,25 @@ export default class OrderListScreen extends Component {
         textAlign: "left",
         flex: 1
       },
-      // headerStyle: {backgroundColor:'#3c3c3c'},
-      headerRight: (
-        <Feather
-          style={{ marginRight: 10, color: "#424242" }}
-          name={"arrow-down-left"}
-          size={25}
-          onPress={() => params.openCreditOrderList()}
-        />
-      )
-    };
-  };
+        // headerStyle: {backgroundColor:'#3c3c3c'},
+        headerRight: <Feather
+        style={{ marginRight: 10, color: "#424242" }}
+        name={"arrow-down-left"}
+        size={25}
+        onPress={() => params.openCreditOrderList()} 
+      />
+      
+      
+      };
+};
 
+  
   constructor() {
     super();
     if (Platform.OS === "android") {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
     this.state = {
-      modalVisible: false,
-      loading: false,
-      textInput: [],
-      inputData: [],
-      modalOrderid: null,
-      modalerror: null,
-      modalProducts: null,
-
       shopid: null,
       isRefreshing: false,
       isLoading: true,
@@ -183,310 +162,13 @@ export default class OrderListScreen extends Component {
     };
   }
 
-  setModalVisible(visible, deliverystatus, orderid, products) {
-    console.log("orderid: " + orderid);
-    if (deliverystatus === "completed" || deliverystatus === "ofd") {
-      return;
-    }
-    this.setState({
-      modalVisible: visible,
-      modalOrderid: orderid,
-      modalProducts: products
-    });
-    if (products === null || products === undefined || products.length === 0) {
-      console.log("products.length: " + products.length);
-      this.addTextInput(0);
-      return;
-    }
-    var indexCount = 1;
-    let textInput = this.state.textInput;
-    let inputData = this.state.inputData;
-    for (let i = 0; i < products.length; i++) {
-      var product = products[i]
-      console.log("setModalVisible: " + JSON.stringify(product));
-      console.log("setModalVisible indexCount: " + i);
-      console.log("setModalVisible: " + JSON.stringify(product.qty));
-      
-      inputData.push(product);
-      textInput.push(
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginLeft: 10,
-            marginRight: 10,
-            marginTop: 5,
-            width: "95%"
-          }}
-        >
-          <TextInput
-            placeholder="Item Name"
-            placeholderTextColor={"rgba(58, 61, 64, 0.7)"}
-            defaultValue={product.productname}
-            style={{
-              height: 40,
-              width: "55%",
-              borderColor: "rgba(58, 61, 64, 0.4)",
-              borderWidth: 1,
-              margin: 1,
-              paddingLeft: 5
-            }}
-            onChangeText={text => {
-              console.log('indexCount: '+i);
-              this.addItemName(text, i);
-            }}
-          />
-          <TextInput
-            placeholder="Qty"
-            keyboardType="numeric"
-            placeholderTextColor={"rgba(58, 61, 64, 0.7)"}
-            defaultValue={product.qty+''}
-            style={{
-              height: 40,
-              width: "10%",
-              borderColor: "rgba(58, 61, 64, 0.4)",
-              borderWidth: 1,
-              margin: 1,
-              paddingLeft: 5
-            }}
-            onChangeText={text => this.addItemQuantity(text, 1)}
-          />
-          <TextInput
-            placeholder="Wgt"
-            placeholderTextColor={"rgba(58, 61, 64, 0.7)"}
-            defaultValue={product.weight}
-            style={{
-              height: 40,
-              width: "15%",
-              borderColor: "rgba(58, 61, 64, 0.4)",
-              borderWidth: 1,
-              margin: 1,
-              paddingLeft: 5
-            }}
-            onChangeText={text => this.addItemWeight(text, i)}
-          />
-          <TextInput
-            placeholder="Price"
-            keyboardType="numeric"
-            placeholderTextColor={"rgba(58, 61, 64, 0.7)"}
-            defaultValue={product.price}
-            style={{
-              height: 40,
-              width: "18%",
-              borderColor: "rgba(58, 61, 64, 0.4)",
-              borderWidth: 1,
-              margin: 1,
-              paddingLeft: 5
-            }}
-            onChangeText={text => this.addItemPrice(text, i)}
-          />
-        </View>
-      );
-      
-      // indexCount = indexCount + 1;
-    }
-    console.log("this.state.textInput.length" + this.state.textInput.length);
-    this.setState({ textInput, inputData });
-  }
-
-  setModalInvisible(visible) {
-    // this.setState({ modalVisible: visible });
-    this.setState({
-      modalVisible: false,
-      textInput: [],
-      inputData: [],
-      modalOrderid: null,
-      modalerror: null,
-      modalProducts: null
-    });
-  }
-
-  uploadVoiceToTextOrder = async orderid => {
-    console.log(
-      "this.state.inputData: " + JSON.stringify(this.state.inputData)
-    );
-    console.log("orderid: " + JSON.stringify(this.state.modalOrderid));
-    for (let inputOrderData of this.state.inputData) {
-      if (
-        "productname" in inputOrderData === false ||
-        "price" in inputOrderData === false
-      ) {
-        this.setState({ modalerror: "ITEM NAME OR PRICE IS MISSING" });
-        return;
-      }
-    }
-
-    var orderQueryData = {
-      orderid: orderid,
-      products: this.state.inputData
-    };
-
-    axios({
-      // Of course the url should be where your actual GraphQL server is.
-      url: SERVER_URL + "/uploadVoiceToTextOrder",
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      },
-      data: orderQueryData
-    })
-      .then(result => {
-        this.onRefresh();
-        this.setState({
-          modalVisible: false,
-          textInput: [],
-          inputData: [],
-          modalOrderid: null,
-          modalerror: null,
-          modalProducts: null
-        });
-      })
-      .catch(error => {
-        console.error(error);
-        this.setState({
-          modalVisible: false,
-          textInput: [],
-          inputData: [],
-          modalOrderid: null,
-          modalerror: null,
-          modalProducts: null
-        });
-      });
-  };
-
-  //function to add TextInput dynamically
-  addTextInput = index => {
-    var orderJObj = {};
-    console.log("addTextInput");
-    let textInput = this.state.textInput;
-    let inputData = this.state.inputData;
-    inputData.push(orderJObj);
-    textInput.push(
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginLeft: 10,
-          marginRight: 10,
-          marginTop: 5,
-          width: "95%"
-        }}
-      >
-        <TextInput
-          placeholder="Item Name"
-          placeholderTextColor={"rgba(58, 61, 64, 0.7)"}
-          style={{
-            height: 40,
-            width: "55%",
-            borderColor: "rgba(58, 61, 64, 0.4)",
-            borderWidth: 1,
-            margin: 1,
-            paddingLeft: 5
-          }}
-          onChangeText={text => this.addItemName(text, index)}
-        />
-        <TextInput
-          placeholder="Qty"
-          keyboardType="numeric"
-          placeholderTextColor={"rgba(58, 61, 64, 0.7)"}
-          style={{
-            height: 40,
-            width: "10%",
-            borderColor: "rgba(58, 61, 64, 0.4)",
-            borderWidth: 1,
-            margin: 1,
-            paddingLeft: 5
-          }}
-          onChangeText={text => this.addItemQuantity(text, index)}
-        />
-        <TextInput
-          placeholder="Wgt"
-          placeholderTextColor={"rgba(58, 61, 64, 0.7)"}
-          style={{
-            height: 40,
-            width: "15%",
-            borderColor: "rgba(58, 61, 64, 0.4)",
-            borderWidth: 1,
-            margin: 1,
-            paddingLeft: 5
-          }}
-          onChangeText={text => this.addItemWeight(text, index)}
-        />
-        <TextInput
-          placeholder="Price"
-          keyboardType="numeric"
-          placeholderTextColor={"rgba(58, 61, 64, 0.7)"}
-          style={{
-            height: 40,
-            width: "18%",
-            borderColor: "rgba(58, 61, 64, 0.4)",
-            borderWidth: 1,
-            margin: 1,
-            paddingLeft: 5
-          }}
-          onChangeText={text => this.addItemPrice(text, index)}
-        />
-      </View>
-    );
-    this.setState({ textInput, inputData });
-  };
-
-  //function to remove TextInput dynamically
-  removeTextInput = () => {
-    let textInput = this.state.textInput;
-    let inputData = this.state.inputData;
-    textInput.pop();
-    inputData.pop();
-    this.setState({ textInput, inputData });
-  };
-
-  //function to add text from TextInputs into single array
-  addItemName = (text, indext) => {
-    console.log("addItemQuantity: " + text);
-    console.log("addItemQuantity: index  " + indext);
-    var orderJObj = this.state.inputData[indext];
-    console.log(
-      "addItemQuantity: inputData  " + JSON.stringify(this.state.inputData)
-    );
-    var orderJObj = this.state.inputData[indext];
-    orderJObj["productname"] = text;
-  };
-  addItemQuantity = (text, index) => {
-    console.log("addItemQuantity: " + text);
-    console.log("addItemQuantity: index  " + index);
-    var orderJObj = this.state.inputData[index];
-    console.log(
-      "addItemQuantity: inputData  " + JSON.stringify(this.state.inputData)
-    );
-    console.log("addItemQuantity: orderJObj  " + orderJObj);
-    if (text === null || text === undefined) {
-      text = 1;
-    }
-    orderJObj["qty"] = text;
-  };
-
-  addItemWeight = (text, index) => {
-    var orderJObj = this.state.inputData[index];
-    orderJObj["weight"] = text;
-  };
-
-  addItemPrice = (text, index) => {
-    var orderJObj = this.state.inputData[index];
-    orderJObj["price"] = text;
-  };
-
-  openCreditOrderList = () => {
-    console.log("openCreditOrderList");
+  openCreditOrderList = () =>{
+    console.log('openCreditOrderList');
     this.props.navigation.navigate("CreditOrderList");
-  };
+  }
 
   async componentDidMount() {
-    this.props.navigation.setParams({
-      openCreditOrderList: this.openCreditOrderList
-    });
+    this.props.navigation.setParams({ openCreditOrderList: this.openCreditOrderList });
 
     console.log("componentDidMount");
     this.props.navigation.addListener("didFocus", this.onScreenFocus);
@@ -566,12 +248,10 @@ export default class OrderListScreen extends Component {
   // Called when our screen is focused
   onScreenFocus = () => {
     // Screen was focused, our on focus logic goes here
-    console.log("onScreenFocus");
     this.onRefresh();
   };
 
   onRefresh = async () => {
-    console.log("onRefresh");
     this.setState({ isRefreshing: true, checkboxes: [], payments: [] }); // true isRefreshing flag for enable pull to refresh indicator
     shopid = await AsyncStorage.getItem("shopid");
     if (shopid !== null) {
@@ -1010,15 +690,12 @@ if any of above exits for an order then it will be delivery status for that orde
       console.log("isLoading: " + this.state.isLoading);
       //Loading View while data is loading
       return (
-        <View
-          style={{
-            flex: 1,
-            paddingTop: 20,
-            justifyContent: "center",
-            alignItems: "center"
-          }}
-        >
-          <ActivityIndicator color="#ea80fc" size="large" />
+        <View style={{ flex: 1, paddingTop: 20, justifyContent:'center', alignItems:'center' }}>
+          <ActivityIndicator 
+            color = '#ea80fc'
+            size = "large"
+
+          /> 
         </View>
       );
     }
@@ -1599,132 +1276,68 @@ if any of above exits for an order then it will be delivery status for that orde
                           size={20}
                         />
                         <Text style={styles.contentText}>
-                          {item.customeraddress}
+                          {item.deliveryaddress}
                         </Text>
                       </View>
                     </View>
-
-                    {item.voiceorderurl === null ||
-                    item.voiceorderurl === undefined ||
-                    item.voiceorderurl === "null" ? null : (
-                      <View style={{ flexDirection: "row" }}>
-                        <Player
-                          style={{ flex: 1 }}
-                          // onComplete={this.playerComplete.bind(this)}
-                          completeButtonText={"Return Home"}
-                          uri={
-                            "http://192.168.0.104:6050/fetchVoiceOrder?filename=3000e06b-ab70-4c16-ac60-e5e6088bbedd_1571244701870"
-                          }
-                          voicetotext={
-                            item.products === null ||
-                            item.products === undefined ||
-                            item.products.length === 0
-                              ? false
-                              : true
-                          }
-                          showDebug={true}
-                          showBackButton={true}
-                          playbackSlider={renderProps => {
-                            return (
-                              <Slider
-                                minimimValue={0}
-                                maximumValue={renderProps.maximumValue}
-                                onValueChange={renderProps.onSliderValueChange}
-                                value={renderProps.value}
-                                style={{
-                                  width: "100%",
-                                  marginLeft: 15
-                                }}
-                              />
-                            );
+                    {item.products.map((itemx, key) => (
+                      <SwipeItem
+                        style={styles.button}
+                        swipeContainerStyle={styles.swipeContentContainerStyle}
+                        leftButtons={leftButton}
+                        onLeftButtonsShowed={() =>
+                          this.itemNotAvailbale(item, itemx)
+                        }
+                        // onMovedToOrigin = {() => this.itemIsAvailbale(item, itemx)}
+                        onMovedToOrigin={() =>
+                          this.itemIsAvailbale(item, itemx)
+                        }
+                        // onRightButtonsShowed = {() => this.itemIsAvailbale(item, itemx)}
+                      >
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            flex: 1,
+                            backgroundColor: "#eeeeee",
+                            marginBottom: 1
                           }}
-                        />
-                        <TouchableOpacity
-                          onPress={() =>
-                            this.setModalVisible(
-                              true,
-                              item.deliverystatus,
-                              item.orderid,
-                              item.products
-                            )
-                          }
                         >
-                          <MaterialCommunityIcons
-                            style={{
-                              marginRight: 10,
-                              // marginLeft: 15,
-                              marginTop: 5
-                              // color:''
-                            }}
-                            name="file-upload-outline"
-                            size={25}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )}
+                          {itemx.available === "NA" ? (
+                            <Text style={styles.strikeText}>
+                              {key + 1}. {itemx.productname}
+                            </Text>
+                          ) : (
+                            <Text style={styles.text}>
+                              {key + 1}. {itemx.productname}
+                            </Text>
+                          )}
 
-                    {item.products === null || item.products === undefined
-                      ? null
-                      : item.products.map((itemx, key) => (
-                          <SwipeItem
-                            style={styles.button}
-                            swipeContainerStyle={
-                              styles.swipeContentContainerStyle
-                            }
-                            leftButtons={leftButton}
-                            onLeftButtonsShowed={() =>
-                              this.itemNotAvailbale(item, itemx)
-                            }
-                            // onMovedToOrigin = {() => this.itemIsAvailbale(item, itemx)}
-                            onMovedToOrigin={() =>
-                              this.itemIsAvailbale(item, itemx)
-                            }
-                            // onRightButtonsShowed = {() => this.itemIsAvailbale(item, itemx)}
-                          >
-                            <View
-                              style={{
-                                flexDirection: "row",
-                                flex: 1,
-                                backgroundColor: "#eeeeee",
-                                marginBottom: 1
-                              }}
-                            >
-                              {itemx.available === "NA" ? (
-                                <Text style={styles.strikeText}>
-                                  {key + 1}. {itemx.productname}
-                                </Text>
-                              ) : (
-                                <Text style={styles.text}>
-                                  {key + 1}. {itemx.productname}
-                                </Text>
-                              )}
+                          {itemx.available === "NA" ? (
+                            <Text style={styles.strikeText}>
+                              {itemx.qty}qty
+                            </Text>
+                          ) : (
+                            <Text style={styles.text}>{itemx.qty}qty</Text>
+                          )}
 
-                              {itemx.available === "NA" ? (
-                                <Text style={styles.strikeText}>
-                                  {itemx.qty}qty
-                                </Text>
-                              ) : (
-                                <Text style={styles.text}>{itemx.qty}qty</Text>
-                              )}
+                          {itemx.available === "NA" ? (
+                            <Text style={styles.strikeText}>
+                              {itemx.weight}g
+                            </Text>
+                          ) : (
+                            <Text style={styles.text}>{itemx.weight}g</Text>
+                          )}
 
-                              {itemx.available === "NA" ? (
-                                <Text style={styles.strikeText}>
-                                  {itemx.weight}g
-                                </Text>
-                              ) : (
-                                <Text style={styles.text}>{itemx.weight}g</Text>
-                              )}
-
-                              {itemx.available === "NA" ? (
-                                <Text style={styles.strikeText}>
-                                  {itemx.price}Rs
-                                </Text>
-                              ) : (
-                                <Text style={styles.text}>{itemx.price}Rs</Text>
-                              )}
-                            </View>
-                          </SwipeItem>
-                        ))}
+                          {itemx.available === "NA" ? (
+                            <Text style={styles.strikeText}>
+                              {itemx.price}Rs
+                            </Text>
+                          ) : (
+                            <Text style={styles.text}>{itemx.price}Rs</Text>
+                          )}
+                        </View>
+                      </SwipeItem>
+                    ))}
 
                     {item.iscancel === "no" ? (
                       <View
@@ -1885,20 +1498,21 @@ if any of above exits for an order then it will be delivery status for that orde
                           {"\u20B9"}
                         </Text>
                         {item.paymentstatus === "received" ? (
-                          <CheckBox
+                          (<CheckBox
                             title="Pending"
                             center
                             size={20}
                             // onPress={() => this.toggleCheckboxPending(item, item.orderid+'Pending')}
                             // checked={payments && payments.includes(item.orderid+'Pending')}
                             checked={false}
-                            disabled={true}
+                            disabled = {true}
                             textStyle={{ fontSize: 10 }}
                             containerStyle={{
                               backgroundColor: "transparent",
                               borderColor: "#fff"
                             }}
                           />
+                          )
                         ) : (
                           <CheckBox
                             title="Pending"
@@ -1927,12 +1541,16 @@ if any of above exits for an order then it will be delivery status for that orde
                               borderColor: "#fff"
                             }}
                           />
-                        ) : item.paymentstatus === "received" ? (
+                        ) : 
+                        item.paymentstatus === "received"?(
                           <CheckBox
                             title="Credit"
                             center
                             size={20}
-                            checked={false}
+                            
+                            checked={
+                              false
+                            }
                             disabled={true}
                             textStyle={{ fontSize: 10 }}
                             containerStyle={{
@@ -1940,7 +1558,8 @@ if any of above exits for an order then it will be delivery status for that orde
                               borderColor: "#fff"
                             }}
                           />
-                        ) : (
+                        ):
+                        (
                           <CheckBox
                             title="Credit"
                             center
@@ -1997,9 +1616,19 @@ if any of above exits for an order then it will be delivery status for that orde
                               borderColor: "#fff"
                             }}
                           />
-                        )}
+                        )
+                        
+                        }
+
+                        
                       </View>
-                    ) : null}
+                    ) : null
+                    
+                    
+                    
+                    
+                    
+                    }
                   </View>
                 </Collapsible>
                 {/*Code for Single Collapsible Ends*/}
@@ -2062,197 +1691,6 @@ if any of above exits for an order then it will be delivery status for that orde
             ItemSeparatorComponent={this.ListViewItemSeparator}
           />
         )}
-
-        <Modal
-          orderid={this.state.modalOrderid}
-          animationType="slide"
-          transparent={false}
-          presentationStyle="overFullScreen"
-          visible={this.state.modalVisible}
-          onRequestClose={() => {
-            // Alert.alert("Modal has been closed.");
-            this.setModalInvisible(false)
-          }}
-        >
-
-          <View
-            style={{
-              position: "absolute",
-              margin: 10,
-              marginTop: 22,
-              height: "80%",
-              // width: "90%",
-              backgroundColor: "rgba(210, 237, 253, 0.9)",
-              flex: 1,
-              justifyContent: "center",
-              alignItems: "center"
-            }}
-          >
-            <View>
-              <KeyboardAwareScrollView
-                ref="ScrollView"
-                keyboardShouldPersistTaps={"always"}
-                contentContainerStyle={{ flexGrow: 1 }}
-              >
-                <View style={{ marginTop: 10, marginBottom: 10 }}>
-                  <Player
-                    style={{ flex: 1, marginTop: 100 }}
-                    // onComplete={this.playerComplete.bind(this)}
-                    completeButtonText={"Return Home"}
-                    uri={
-                      "http://192.168.0.100:6050/fetchVoiceOrder?filename=3000e06b-ab70-4c16-ac60-e5e6088bbedd_1571244701870"
-                    }
-                    showDebug={true}
-                    showBackButton={true}
-                    playbackSlider={renderProps => {
-                      // console.log({
-                      //   "maximumValue: ": renderProps.maximumValue
-                      // });
-                      return (
-                        <Slider
-                          minimimValue={0}
-                          maximumValue={renderProps.maximumValue}
-                          onValueChange={renderProps.onSliderValueChange}
-                          value={renderProps.value}
-                          style={{
-                            width: "100%"
-                          }}
-                        />
-                      );
-                    }}
-                  />
-                  <ScrollView>
-                    <View style={{ marginTop: 5, marginBottom: 20 }}>
-                      {this.state.textInput.map(value => {
-                        return value;
-                      })}
-                      {/* <View style={styles.row}>
-                        {this.state.textInput.length === 0 
-                          ? this.addTextInput(this.state.textInput.length)
-                          : null}
-                      </View> */}
-                    </View>
-                  </ScrollView>
-                </View>
-              </KeyboardAwareScrollView>
-              <Text
-                style={{
-                  justifyContent: "center",
-                  textAlign: "center",
-                  margin: 10,
-                  color: "red",
-                  fontFamily: "sans-serif",
-                  fontWeight: "500"
-                }}
-              >
-                {this.state.modalerror}
-              </Text>
-              <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                <View style={{ margin: 10 }}>
-                  <TouchableOpacity onPress={() => this.removeTextInput()}>
-                    <AntDesign
-                      style={{
-                        marginRight: 10,
-                        marginTop: 7,
-                        color: "rgba(99, 180, 28, 0.96)"
-                      }}
-                      name="minuscircleo"
-                      size={30}
-                    />
-                  </TouchableOpacity>
-                </View>
-                <Text style={{ margin: 10, marginTop: 5 }}>
-                  ADD/REMOVE ITEMS
-                </Text>
-                <View style={{ margin: 10 }}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      this.addTextInput(this.state.textInput.length)
-                    }
-                  >
-                    <AntDesign
-                      style={{
-                        marginRight: 10,
-                        marginTop: 7,
-                        color: "rgba(99, 180, 28, 0.96)"
-                      }}
-                      name="pluscircleo"
-                      size={30}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                <TouchableOpacity
-                  onPress={() =>
-                    this.setModalInvisible(!this.state.modalVisible)
-                  }
-                  style={{
-                    height: 40,
-                    width: "40%"
-                  }}
-                >
-                  <View
-                    style={{
-                      margin: 10,
-                      marginBottom: 5,
-
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "rgba(228, 43, 5, 0.66)"
-                    }}
-                  >
-                    <Text
-                      style={{
-                        textAlign: "center",
-                        padding: 10,
-                        color: "#ffffff",
-                        fontWeight: "500",
-                        fontFamily: "sans-serif"
-                      }}
-                    >
-                      CANCEL
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    height: 40,
-                    width: "40%"
-                  }}
-                  onPress={() =>
-                    this.uploadVoiceToTextOrder(this.state.modalOrderid)
-                  }
-                >
-                  <View
-                    style={{
-                      margin: 10,
-                      // width: "40%",
-                      marginBottom: 5,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "rgba(5, 139, 228, 0.96)"
-                    }}
-                  >
-                    <Text
-                      style={{
-                        textAlign: "center",
-                        padding: 10,
-                        color: "#ffffff",
-                        fontWeight: "500",
-                        fontFamily: "sans-serif"
-                      }}
-                    >
-                      DONE
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-       
-       
-        </Modal>
       </View>
     );
   }
@@ -2260,7 +1698,7 @@ if any of above exits for an order then it will be delivery status for that orde
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
     // paddingTop: 0
     //backgroundColor: "#F5FCFF"
   },

@@ -175,6 +175,16 @@ export default class SalesChart extends React.Component {
         //   { label: "New", value: 5001117978, color: "#c8e6c9" }
         // ]
 
+        if(creditamount === null || creditamount === undefined){
+          creditamount =0
+        }
+        if(receivedamount === null || receivedamount === undefined){
+          receivedamount =0
+        }
+        if(neworderamount === null || neworderamount === undefined){
+          neworderamount =0
+        }
+
         this.setState({
           neworderamount: neworderamount,
           creditamount: creditamount,
@@ -264,57 +274,57 @@ export default class SalesChart extends React.Component {
     this.props.navigation.navigate("CreditOrderList");
   }
 
-  generateHBarData = () => {
-    console.log("generateHBarData");
-    const data = [];
-    for (let i = 0; i < 10; i++) {
-      data.push((i + 1) * 100);
-    }
+  // generateHBarData = () => {
+  //   console.log("generateHBarData");
+  //   const data = [];
+  //   for (let i = 0; i < 10; i++) {
+  //     data.push((i + 1) * 100);
+  //   }
 
-    this.setState({
-      hBarData: data
-    });
-  };
+  //   this.setState({
+  //     hBarData: data
+  //   });
+  // };
 
   searchOrder = () => {
     this.props.navigation.navigate("LoadOrderListScreen");
   };
 
-  generateData() {
-    var data = [];
-    var data2 = [];
-    var data3 = [];
-    var pieData = [];
-    var startDate = moment();
-    for (var i = 0; i < 30; i++) {
-      startDate.add(1, "days");
-      data.push({
-        x: startDate.format("DD/MMM"),
-        y: Math.round(Math.random() * 1000)
-      });
-      data2.push({
-        x: startDate.format("YYYY-MM-DD"),
-        y: Math.round(Math.random() * 50) + 0.5
-      });
-      data3.push({
-        x: startDate.format("YYYY-MM-DD"),
-        y: Math.round(Math.random() * 1000)
-      });
-    }
+  // generateData() {
+  //   var data = [];
+  //   var data2 = [];
+  //   var data3 = [];
+  //   var pieData = [];
+  //   var startDate = moment();
+  //   for (var i = 0; i < 30; i++) {
+  //     startDate.add(1, "days");
+  //     data.push({
+  //       x: startDate.format("DD/MMM"),
+  //       y: Math.round(Math.random() * 1000)
+  //     });
+  //     data2.push({
+  //       x: startDate.format("YYYY-MM-DD"),
+  //       y: Math.round(Math.random() * 50) + 0.5
+  //     });
+  //     data3.push({
+  //       x: startDate.format("YYYY-MM-DD"),
+  //       y: Math.round(Math.random() * 1000)
+  //     });
+  //   }
 
-    this.setState({
-      data: [
-        {
-          seriesName: "test2",
-          data: data.slice(),
-          color: "#0e95de"
-        }
-      ],
-      pieData: pieData
-    });
-  }
+  //   this.setState({
+  //     data: [
+  //       {
+  //         seriesName: "test2",
+  //         data: data.slice(),
+  //         color: "#0e95de"
+  //       }
+  //     ],
+  //     pieData: pieData
+  //   });
+  // }
 
-  render() {
+  render() { 
     console.log("this.state.hBarData:+ " + this.state.hBarData);
 
     if (this.state.isLoading) {

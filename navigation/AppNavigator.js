@@ -1,5 +1,7 @@
 import React from 'react';
-import { createAppContainer, createSwitchNavigator, createStackNavigator, createBottomTabNavigator } from 'react-navigation';
+import { createAppContainer, createSwitchNavigator, createStackNavigator, } from 'react-navigation';
+
+import { createBottomTabNavigator } from 'react-navigation-tabs';
 
 
 import { Platform } from 'react-native';
@@ -35,6 +37,7 @@ import UpdateOTPScreen from '../screens/login/UpdateOTPScreen';
 import UpdateShopRegistration from '../screens/login/UpdateShopRegistration';
 import CreditOrderList from '../screens/CreditOrderList';  
 import Icon from '@expo/vector-icons/FontAwesome';
+import AddItems from '../screens/AddItems';
 
 
 // export default createAppContainer(
@@ -154,7 +157,9 @@ const tabNavigator = createBottomTabNavigator({
   // CreditOrderStack,
   chartStack,
   SettingsStack,
-});
+},
+
+);
 
 
 //////////
@@ -163,6 +168,7 @@ const tabNavigator = createBottomTabNavigator({
 const AppStack = createStackNavigator({
   MainTabNavigator: {
     screen: tabNavigator,
+    backBehavior:'history',
     headerMode: 'none',
     headerBackTitle: null,
     headerLeft: null,
@@ -189,9 +195,20 @@ const AppStack = createStackNavigator({
       headerRight: null
     }
   },
-  CustomerOrdersDetails: CustomerOrdersDetails,
+  CustomerOrdersDetails: { 
+    screen: CustomerOrdersDetails,
+    navigationOptions: {
+      headerRight: null
+    }
+  },
   CreateOrder: CreateOrder,
   Grocery: Grocery,
+  AddItems: { 
+    screen: AddItems,
+    navigationOptions: {
+      headerRight: null
+    }
+  },
   Cart: CartScreen,
   ShoppingCartIcon:ShoppingCartIcon,
   AddCustomerAddress: { 

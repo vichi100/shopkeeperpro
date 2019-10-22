@@ -97,6 +97,25 @@ export default class CustomerListScreen extends Component {
       ]
     };
   }
+  compareArray = (arr1, arr2) => {
+    if (!arr1 || !arr2) return;
+
+    let result;
+
+    arr1.forEach((e1, i) =>
+      arr2.forEach(e2 => {
+        if (e1.length > 1 && e2.length) {
+          result = compare(e1, e2);
+        } else if (e1 !== e2) {
+          result = false;
+        } else {
+          result = true;
+        }
+      })
+    );
+
+    return result;
+  };
 
   async componentDidMount() {
     this.props.navigation.setParams({
@@ -137,10 +156,9 @@ export default class CustomerListScreen extends Component {
 
             const obj = { name: fullName, mobile: mobile, shopid: shopid };
             var fullContactDetailStr = mobile + name + lastName;
-            const obj2 = { name: fullContactDetailStr };
             // this.state.dataSource.push(obj); // Push the object
             contactDataArray.push(obj);
-            contactDataArrayStore.push(obj2);
+            contactDataArrayStore.push(fullContactDetailStr);
           } catch (e) {
             console.log("Error");
           }
@@ -167,20 +185,11 @@ export default class CustomerListScreen extends Component {
       } else {
         var validList = [];
         var contactDataArrayStorexArray = JSON.parse(contactDataArrayStorex);
-
-        // https://stackoverflow.com/questions/50648091/check-the-difference-between-two-arrays-of-objects-in-javascript
-
-        var res = contactDataArrayStore.filter(
-          item1 =>
-            !contactDataArrayStorexArray.some(
-              item2 => item2.name === item1.name
-            )
-        );
-
-        console.log("res: " + JSON.stringify(res));
-
-        if (res.length !== 0) {
-          console.log("res: " + JSON.stringify(validList));
+        // validList = contactDataArrayStorexArray.filter(item => {
+        //   return !contactDataArrayStore.includes(item);
+        // });
+        validList = compareArray(contactDataArrayStorexArray, contactDataArrayStore);
+        if (validList.length !== 0) {
           this._sendCustomerDetailsToserver(contactDataArray);
           await AsyncStorage.setItem(
             "contactDataArrayStore",

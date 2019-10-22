@@ -172,7 +172,15 @@ export default class CustomerOrdersDetails extends Component {
       });
     } else {
       //console.log("customer name: " + customerDetails.name);
-      this.props.navigation.navigate("Grocery", {
+      // this.props.navigation.navigate("Grocery", {
+      //   customerid: customerid,
+      //   customerMobile: customerDetails.customermobile,
+      //   customerName: customerDetails.customernamebyshop,
+      //   deliveryaddress: deliveryaddress
+      // });
+
+
+      this.props.navigation.navigate("AddItems", {
         customerid: customerid,
         customerMobile: customerDetails.customermobile,
         customerName: customerDetails.customernamebyshop,
